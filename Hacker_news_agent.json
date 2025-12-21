@@ -1,0 +1,137 @@
+{
+  "name": "Hacker_news_agent",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        0,
+        0
+      ],
+      "id": "1e79abe1-d181-40c6-80e5-a7aae16771c9",
+      "name": "When chat message received",
+      "webhookId": "aeceb8ad-e336-45cd-b664-39532c0323fc"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        208,
+        0
+      ],
+      "id": "32fa71a5-3a67-4f5d-a2c9-5624cbb1a8e2",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "contextWindowLength": 10
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        256,
+        192
+      ],
+      "id": "87280ed5-f190-4962-98e7-dcd8df9f2356",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "resource": "all",
+        "limit": 10,
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.hackerNewsTool",
+      "typeVersion": 1,
+      "position": [
+        528,
+        160
+      ],
+      "id": "d18ff320-353c-4a21-89fe-0ed9d16dabc7",
+      "name": "Hacker News"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        112,
+        176
+      ],
+      "id": "18553245-6be5-48c8-b67d-5877838eef41",
+      "name": "Gemini Brain",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "897ArUpVQ8JKHV3k",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hacker News": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini Brain": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "363a6661-528e-43d9-955e-ea0d058e77fd",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "d1647479a68c1439e777a2d725daafc4b500c45d1773b112e7abef32cde7ec75"
+  },
+  "id": "YpLFM9heyM7Ct4n8",
+  "tags": []
+}
