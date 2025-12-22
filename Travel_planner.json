@@ -1,0 +1,193 @@
+{
+  "name": "Travel_planner",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        320,
+        224
+      ],
+      "id": "9b311f08-1ac6-41a6-b1f0-89a06a972af7",
+      "name": "When chat message received",
+      "webhookId": "c15e0b23-012a-4726-8c88-03d1648c6c91"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        656,
+        224
+      ],
+      "id": "746b6173-26a6-40f4-a051-53bbd9886e79",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        480,
+        448
+      ],
+      "id": "3fc98d34-c82b-4a46-a80a-5ddc887e282b",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "JLl9NjhLJbmEi1qI",
+          "name": "Google Gemini(PaLM) Api account 3"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        672,
+        448
+      ],
+      "id": "29c4b1c0-c3f0-4078-b512-bfdd17052bce",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Get row(s) in sheet in Google Sheets",
+        "documentId": {
+          "__rl": true,
+          "value": "17lc_3wv3poS7-tbJqe6f2YTIQeRUeD52oH-Luya9btg",
+          "mode": "list",
+          "cachedResultName": "Contacts_CSV_template",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/17lc_3wv3poS7-tbJqe6f2YTIQeRUeD52oH-Luya9btg/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1524856317,
+          "mode": "list",
+          "cachedResultName": "Contacts_CSV_template.csv",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/17lc_3wv3poS7-tbJqe6f2YTIQeRUeD52oH-Luya9btg/edit#gid=1524856317"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.7,
+      "position": [
+        832,
+        448
+      ],
+      "id": "f08b28a7-1cc3-40ee-ad80-cfbdda379470",
+      "name": "Google Sheets",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "MCGCOk9OpQGJR4LX",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Create an event in Google Calendar",
+        "calendar": {
+          "__rl": true,
+          "value": "aq272570@gmail.com",
+          "mode": "list",
+          "cachedResultName": "aq272570@gmail.com"
+        },
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        960,
+        432
+      ],
+      "id": "11e861e1-cc06-4d17-be9e-499c30b44924",
+      "name": "Google Calendar",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "oy7rN2va6UDTKaOC",
+          "name": "Google Calendar account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Calendar": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "7afe9ac6-46af-4323-b594-03370ec0adf2",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "d1647479a68c1439e777a2d725daafc4b500c45d1773b112e7abef32cde7ec75"
+  },
+  "id": "ztMlQi6qbn9v3gsN",
+  "tags": []
+}
