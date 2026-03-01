@@ -1,0 +1,757 @@
+{
+  "name": "VA Assistant 1",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -736,
+        -160
+      ],
+      "id": "3378d284-5049-4d3a-b169-8931dd7c2866",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "value": "appxYZF1D0Hq44EKw",
+          "mode": "list",
+          "cachedResultName": "n8n test",
+          "cachedResultUrl": "https://airtable.com/appxYZF1D0Hq44EKw"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblBV7cy7tXtvLbly",
+          "mode": "list",
+          "cachedResultName": "Inbound Calls",
+          "cachedResultUrl": "https://airtable.com/appxYZF1D0Hq44EKw/tblBV7cy7tXtvLbly"
+        },
+        "filterByFormula": "=RECORD_ID() = \"rec5i50svVp0NrSkE\"",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        -528,
+        -160
+      ],
+      "id": "8eded6ab-32a8-43ae-8dd6-1b7747ce575c",
+      "name": "Search records",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "brlczPVey0oUcStz",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Evaluate this record and take the appropriate action, per your system instructions.\n\nAirtable record id: {{ $('Search records').item.json.id }}\nCaller name: {{ $('Search records').item.json.Name }}\nCaller phone number: {{ $('Search records').item.json['Phone Number'] }}\nCaller email address: {{ $('Search records').item.json['Email Address'] }}\nCaller address: {{ $('Search records').item.json.Address }}\nAppointment date and time: {{ $('Search records').item.json['Appointment Date Time'] }}\nNotes: Special instructions: {{ $('Search records').item.json['Special Instructions'] }}, Call recording: {{ $('Search records').item.json['Call Recording'] }}\nTranscript: {{ $('Search records').item.json.Transcript }}\n",
+        "options": {
+          "systemMessage": "={{ $json['System Message'] }}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        -48,
+        -160
+      ],
+      "id": "e5015e7f-0c85-4fd4-a148-4c3abddd617f",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        -288,
+        112
+      ],
+      "id": "f6f85d0c-0e29-4593-8f47-6871026a0862",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "tR6d3uz75MqYaDAC",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $json['Phone Number'] }}",
+        "contextWindowLength": 10
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        -128,
+        112
+      ],
+      "id": "f9ee80b9-084d-4ed3-8a9f-6685fe8e4761",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "from": "+15595551234",
+        "to": "={{ $json['Phone Number'] }}",
+        "message": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Message', ``, 'string') }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.twilioTool",
+      "typeVersion": 1,
+      "position": [
+        192,
+        112
+      ],
+      "id": "e7fe94f3-19cf-4ac1-a444-7f47a9d1c8a1",
+      "name": "Send SMS to Owner",
+      "credentials": {
+        "twilioApi": {
+          "id": "SuIuAC8Hr5UCdbTG",
+          "name": "Twilio account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "from": "+15595551234",
+        "to": "={{ $json['Phone Number'] }}",
+        "message": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Message', ``, 'string') }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.twilioTool",
+      "typeVersion": 1,
+      "position": [
+        32,
+        112
+      ],
+      "id": "2afb275d-9152-436e-9d56-7baed3684e28",
+      "name": "Send Confirmation SMS",
+      "credentials": {
+        "twilioApi": {
+          "id": "SuIuAC8Hr5UCdbTG",
+          "name": "Twilio account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "owner@example.com",
+        "subject": "Job Applicant Called",
+        "message": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Message', ``, 'string') }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmailTool",
+      "typeVersion": 2.1,
+      "position": [
+        336,
+        112
+      ],
+      "id": "6c9f9d5a-c25f-4363-a82c-faaf562eac86",
+      "name": "Email Owner",
+      "webhookId": "6b6f4dc4-21a6-40ae-ab16-0bc5f963bc66",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "9oHOOuPFfaByQCN8",
+          "name": "AAIC gmail"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "base": {
+          "__rl": true,
+          "value": "appxYZF1D0Hq44EKw",
+          "mode": "list",
+          "cachedResultName": "n8n test",
+          "cachedResultUrl": "https://airtable.com/appxYZF1D0Hq44EKw"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblBV7cy7tXtvLbly",
+          "mode": "list",
+          "cachedResultName": "Inbound Calls",
+          "cachedResultUrl": "https://airtable.com/appxYZF1D0Hq44EKw/tblBV7cy7tXtvLbly"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id": "={{ $json.id }}",
+            "Name": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Name', ``, 'string') }}",
+            "Email Address": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Email_Address', ``, 'string') }}",
+            "Phone Number": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Phone_Number', ``, 'string') }}",
+            "Address": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Address', ``, 'string') }}",
+            "Special Instructions": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Special_Instructions', ``, 'string') }}",
+            "Handled": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Handled', ``, 'string') }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": false
+            },
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Transcript",
+              "displayName": "Transcript",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Email Address",
+              "displayName": "Email Address",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Phone Number",
+              "displayName": "Phone Number",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Address",
+              "displayName": "Address",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Referral Source",
+              "displayName": "Referral Source",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Appointment Type",
+              "displayName": "Appointment Type",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Appointment Date Time",
+              "displayName": "Appointment Date Time",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Special Instructions",
+              "displayName": "Special Instructions",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Call Recording",
+              "displayName": "Call Recording",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Handled",
+              "displayName": "Handled",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtableTool",
+      "typeVersion": 2.1,
+      "position": [
+        480,
+        80
+      ],
+      "id": "ae74e36c-9ea5-4eb4-b270-ea8097dc6a40",
+      "name": "Update Record in Airtable",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "brlczPVey0oUcStz",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "value": "appxYZF1D0Hq44EKw",
+          "mode": "list",
+          "cachedResultName": "n8n test",
+          "cachedResultUrl": "https://airtable.com/appxYZF1D0Hq44EKw"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblBV7cy7tXtvLbly",
+          "mode": "list",
+          "cachedResultName": "Inbound Calls",
+          "cachedResultUrl": "https://airtable.com/appxYZF1D0Hq44EKw/tblBV7cy7tXtvLbly"
+        },
+        "filterByFormula": "=RECORD_ID() = \"{{ $('Search records').item.json.id }}\"",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        400,
+        -160
+      ],
+      "id": "f67ffc27-7412-4d04-a943-607d85d7cda5",
+      "name": "Search records1",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "brlczPVey0oUcStz",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "191b07c8-61f2-41ec-901b-cb25e77fa5d1",
+              "leftValue": "={{ $json['Appointment Type'] }}",
+              "rightValue": "Appointment",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        592,
+        -160
+      ],
+      "id": "1853d35e-f2ad-4961-b876-5f0e87072e74",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "7vy6ilULCtrE5O2T",
+          "mode": "list",
+          "cachedResultName": "VA Assistant 2"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "first_name": "={{ $json['First Name'] }}",
+            "last_name": "={{ $json['Last Name'] }}",
+            "email": "={{ $json['Email Address'] }}",
+            "mobile_number": "={{ $json['Phone Number'] }}",
+            "notes": "={{ $json['Special Instructions'] }}",
+            "address": "={{ $json.Address }}",
+            "appointment_datetime": "={{ $json['Appointment Date Time'] }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "first_name",
+              "displayName": "first_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "last_name",
+              "displayName": "last_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "email",
+              "displayName": "email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "mobile_number",
+              "displayName": "mobile_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "lead_source",
+              "displayName": "lead_source",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "notes",
+              "displayName": "notes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "address",
+              "displayName": "address",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "appointment_datetime",
+              "displayName": "appointment_datetime",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        848,
+        -240
+      ],
+      "id": "ce88bf0b-6f4f-4db1-a061-d600ffdf88f3",
+      "name": "Execute Workflow"
+    },
+    {
+      "parameters": {
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "value": "apppsLBTuWVHQdeTB",
+          "mode": "list",
+          "cachedResultName": "TI Follow Up System",
+          "cachedResultUrl": "https://airtable.com/apppsLBTuWVHQdeTB"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblWBwuo5VPSqrfOc",
+          "mode": "list",
+          "cachedResultName": "AI Agent System Message",
+          "cachedResultUrl": "https://airtable.com/apppsLBTuWVHQdeTB/tblWBwuo5VPSqrfOc"
+        },
+        "filterByFormula": "{Active}",
+        "returnAll": false,
+        "limit": 1,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        -320,
+        -160
+      ],
+      "id": "c80ebb3a-6e29-4e46-9458-089c4fb81e09",
+      "name": "Search records2",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "brlczPVey0oUcStz",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    }
+  ],
+  "pinData": {
+    "When Executed by Another Workflow": [
+      {
+        "json": {
+          "id": "recJrESGg3MTjHqGe",
+          "createdTime": "2025-06-27T21:53:33.000Z",
+          "fields": {
+            "Name": "Jane Smith",
+            "Phone Number": "4088029549",
+            "Email Address": "jane@example.com",
+            "Address": "123 Main Street, Fresno, CA 93728",
+            "Appointment Type": "Free attic inspection",
+            "Appointment Date and Time": "2025-07-01 08:00",
+            "Special Instructions": "Gate code 123",
+            "Referral Source": "TV commercial",
+            "Transcript": "AI: Thanks for calling Tyson Insulation. This is Pamela. How can I help you?\nUser: Hi. I need to book an appointment.\nAI: Of course. May I have your first and last name, please?\nUser: Jane Smith.\nAI: Thank you, Jane. Uh, could you please provide your phone number?\nUser: 4 0 8 8 0 2 9 5 4 9.\nAI: Thank you. May I also have your email address?\nUser: Jane at example dot com.\nAI: Thank you, Jane. Could you provide your street address, including city and ZIP code?\nUser: 1 2 3 Main Street, Fresno 9 3 7 2 8.\nAI: Thank you. Are there any special access instructions such as a gate code?\nUser: Gate code 1 2 3.\nAI: Thank you. How did you hear about us?\nUser: TV commercial.\nAI: Thank you for sharing that. 1 moment while I check our calendar. Thank you.\nAI: 1 moment while I check our calendar. Thank you. For your free attic inspection, we have June thirtieth at 8 AM, or July first at 8 AM available. So which works best for you?\nUser: July first.\nAI: Give me a moment. Great. You're booked for July first 2025. At 8 AM. Please allow a 1 hour arrival window Just to confirm, are you flexible on time if we were to arrive earlier or later than scheduled?\nUser: Yes. I'm flexible both before and after.",
+            "Call ID": "26dbef60-ee5b-4806-b18c-cd22e7320ef5",
+            "Time Flexibility": "Flexible both before and after",
+            "Recording": "https://storage.vapi.ai/26dbef60-ee5b-4806-b18c-cd22e7320ef5-1751061215684-206e4d3e-a8fe-439d-8af6-b2dc6e54ff0e-mono.wav",
+            "Created Time": "2025-06-27T21:53:33.000Z",
+            "Handled": "Yes",
+            "Category": "Booked Appointment",
+            "First Name": "Jane",
+            "Last Name": "Smith"
+          }
+        }
+      }
+    ]
+  },
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Search records",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search records": {
+      "main": [
+        [
+          {
+            "node": "Search records2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send SMS to Owner": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Confirmation SMS": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email Owner": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Record in Airtable": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Search records1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search records1": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Execute Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search records2": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "any"
+  },
+  "versionId": "82214a6b-57dd-4bab-a0ff-ee0215998983",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "d9e08b03f66bed3e457d91934829145fe883e6ff4c831e245eea7603c9679cd0"
+  },
+  "id": "9nNj1y6gViaUSAkH",
+  "tags": []
+}

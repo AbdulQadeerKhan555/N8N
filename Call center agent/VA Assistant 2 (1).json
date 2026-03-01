@@ -1,0 +1,283 @@
+{
+  "name": "VA Assistant 2",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "jsonExample",
+        "jsonExample": "{\n  \"first_name\": \"string\",\n  \"last_name\": \"string\",\n  \"email\": \"string\",\n  \"mobile_number\": \"string\",\n  \"lead_source\": \"string\",\n  \"notes\": \"string\",\n  \"address\": \"string\",\n  \"appointment_datetime\": \"string\"\n}"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -608,
+        -80
+      ],
+      "id": "fb3a1733-d0ef-4d37-856c-451f568c7fa6",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "jsCode": "const rawInput = $json.appointment_datetime || '2025-07-01 08:00';\n\n// Normalize input: ensure it has a 'T' and seconds\nlet input = rawInput.replace(' ', 'T');\nif (!input.includes(':')) input += 'T00:00:00';\nif (input.length === 16) input += ':00'; // Add seconds if missing\n\n// Split into date and time parts\nconst [datePart, timePart] = input.split('T');\nconst [year, month, day] = datePart.split('-').map(Number);\nconst [hour, minute, second] = timePart.split(':').map(Number);\n\n// Adjust Pacific Time (UTC-7 during DST)\nconst pacificOffset = -7;\nconst utcDate = new Date(Date.UTC(year, month - 1, day, hour - pacificOffset, minute, second));\n\n// Format as UTC ISO string\nconst utcIso = utcDate.toISOString();\n\nreturn [\n  {\n    json: {\n      appointment_datetime: utcIso\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -384,
+        -80
+      ],
+      "id": "6cc9f103-7998-4f34-ad1d-c72012520f56",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=first_name: {{ $('When Executed by Another Workflow').item.json.first_name }}\nlast_name: {{ $('When Executed by Another Workflow').item.json.last_name }}\nemail: {{ $('When Executed by Another Workflow').item.json.email }}\nmobile_number: {{ $('When Executed by Another Workflow').item.json.mobile_number }}\nlead_source: {{ $('When Executed by Another Workflow').item.json.lead_source }}\nnotes: {{ $('When Executed by Another Workflow').item.json.notes }}\naddress: {{ $('When Executed by Another Workflow').item.json.address }}\nappointment_datetime: {{ $('When Executed by Another Workflow').item.json.appointment_datetime }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=**System Instructions for HCP Create Customer Agent**\n\n### Agent Objective:\n\nYour sole responsibility is to create new customer records in HouseCall Pro (HCP) by accurately formatting and sending customer data using the provided \"HCP Create Customer\" tool.\n\n### Input Data:\n\nYou will receive input data structured as follows:\n\n* **first\\_name:** Customer's first name.\n* **last\\_name:** Customer's last name.\n* **email:** Customer's email address.\n* **mobile\\_number:** Customer's phone number.\n* **lead\\_source:** Source indicating how the lead was generated.\n* **notes:** Additional notes regarding the customer.\n* **address:** A single string formatted as \"\\[Street Address], \\[City], \\[CA] \\[Zip]\".\n\n### Required JSON Output Structure:\n\nYou must parse the input data precisely and convert it into the following exact JSON structure, and then invoke the \"HCP Create Customer\" tool:\n\n```json\n{\n  \"first_name\": \"string\",\n  \"last_name\": \"string\",\n  \"email\": \"string\",\n  \"mobile_number\": \"string\",\n  \"lead_source\": \"string\",\n  \"notes\": \"string\",\n  \"addresses\": [\n    {\n      \"street\": \"string\",\n      \"street_line_2\": \"\",\n      \"city\": \"string\",\n      \"state\": \"string\",\n      \"zip\": \"string\",\n      \"appointment_datetime\": \"2025-07-15T21:00:00Z\"\n    }\n  ]\n}\n```\n\n### Important Parsing Instructions:\n\n* **Street Address:** Extracted from the first segment of the address before the first comma.\n* **City:** Extracted from the segment following the first comma and before the second comma.\n* **State:** Will always be \"CA\"\n* **Zip:** Extracted as the five-digit code following the state abbreviation.\n* **street\\_line\\_2:** Always leave this field as an empty string unless explicitly provided in input.\n\n### Tool Usage:\n\n* Invoke the **\"HCP Create Customer\"** tool with the precisely parsed JSON object.\n\n### Structured Output Parser Tool:\n\n* You are provided with a **Structured Output Parser** tool.\n* **Important:** Use this tool **exclusively** for parsing input data to match the JSON structure required by the \"HCP Create Customer\" tool.\n* Do not invoke or use the Structured Output Parser tool for any other tasks.\n\n### Additional Notes:\n\n* Double-check the accuracy of the parsed address components.\n* Ensure all required fields are populated accurately before invoking the tool.\n\nBy strictly adhering to these instructions, you ensure accurate and efficient customer creation in HouseCall Pro.\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        -160,
+        -80
+      ],
+      "id": "7283bf63-885c-48f0-81ab-1da70cd00cc2",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        -208,
+        144
+      ],
+      "id": "0961ff66-56fb-4224-902d-1735eb57d9b8",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "tR6d3uz75MqYaDAC",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"first_name\": \"string\",\n  \"last_name\": \"string\",\n  \"email\": \"string\",\n  \"mobile_number\": \"string\",\n  \"lead_source\": \"string\",\n  \"notes\": \"string\",\n  \"addresses\": [\n    {\n      \"street\": \"123 Main Street\",\n      \"street_line_2\": \"\",\n      \"city\": \"Fresno\",\n      \"state\": \"CA\",\n      \"zip\": \"93728\"\n    }\n  ]\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        -48,
+        144
+      ],
+      "id": "81c81b00-0b19-4ac0-b10d-424eabeabaf8",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=first_name: {{ $json.output.first_name }}\nlast_name: {{ $json.output.last_name }}\nemail: {{ $json.output.email }}\nmobile_number: {{ $json.output.mobile_number }}\nlead_source: {{ $json.output.lead_source }}\nnotes: {{ $json.output.notes }}\nstreet: {{ $json.output.addresses[0].street }}\nstreet_line_2: {{ $json.output.addresses[0].street_line_2 }}\ncity: {{ $json.output.addresses[0].city }}\nstate: {{ $json.output.addresses[0].state }}\nzip: {{ $json.output.addresses[0].zip }}\nappointment_datetime: {{ $('Code').item.json.appointment_datetime }}",
+        "options": {
+          "systemMessage": "=**System Instructions for HCP Create Customer Agent**\n\n### Agent Objective:\n\nYour sole responsibility is to create new customer records in HouseCall Pro (HCP) by accurately sending customer data using the provided \"HCP Create Customer\" tool.\n\n### Input Data:\n\nYou will receive input data structured as follows:\n\n{\n  \"first_name\": \"string\",\n  \"last_name\": \"string\",\n  \"email\": \"string\",\n  \"mobile_number\": \"string\",\n  \"lead_source\": \"string\",\n  \"notes\": \"string\",\n  \"addresses\": [\n    {\n      \"street\": \"string\",\n      \"street_line_2\": \"\",\n      \"city\": \"string\",\n      \"state\": \"CA\",\n      \"zip\": \"string\",\n      \"appointment_datetime\": \"2025-07-15T21:00:00Z\"\n    }\n  ]\n}\n\n\n\n### Tool Usage:\n\n* Invoke the **\"HCP Create Customer\"** tool with the precisely parsed JSON object.\n\n\n\n### Additional Notes:\n\n* Double-check the accuracy of the parsed address components.\n* Ensure all required fields are populated accurately before invoking the tool.\n\nBy strictly adhering to these instructions, you ensure accurate and efficient customer creation in HouseCall Pro.\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        208,
+        -80
+      ],
+      "id": "92dade7c-ffff-4fb8-aad9-29c02d2467dd",
+      "name": "AI Agent1"
+    },
+    {
+      "parameters": {
+        "toolDescription": "Makes an HTTP request to HouseCall Pro to create a customer.",
+        "method": "POST",
+        "url": "https://api.housecallpro.com/customers",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer 55769b4c83f540ada630fce420625b98"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={\n  \"first_name\": \"{{ $json.output.first_name }}\",\n  \"last_name\": \"{{ $json.output.last_name }}\",\n  \"email\": \"{{ $json.output.email }}\",\n  \"mobile_number\": \"{{ $json.output.mobile_number }}\",\n  \"lead_source\": \"Google\",\n  \"notes\": \"{{ $json.output.notes }}\",\n  \"addresses\": [\n    {\n      \"street\": \"{{ $json.output.addresses[0].street }}\",\n      \"street_line_2\": \"{{ $json.output.addresses[0].street_line_2 }}\",\n      \"city\": \"{{ $json.output.addresses[0].city }}\",\n      \"state\": \"{{ $json.output.addresses[0].state }}\",\n      \"zip\": \"{{ $json.output.addresses[0].zip }}\"\n    }\n  ]\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.2,
+      "position": [
+        304,
+        160
+      ],
+      "id": "b1aa6217-53bf-4d14-90d1-cc3966c7f619",
+      "name": "HCP Create Customer"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "riYwIqaViN2FJtAS",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/riYwIqaViN2FJtAS",
+          "cachedResultName": "Self Learning Agent"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        560,
+        -80
+      ],
+      "id": "972c05f8-b3ad-4f47-8dc2-b169bf2dd907",
+      "name": "Execute Workflow",
+      "disabled": true
+    }
+  ],
+  "pinData": {
+    "When Executed by Another Workflow": [
+      {
+        "json": {
+          "first_name": "Lindsey",
+          "last_name": "Gonzales",
+          "email": "Lindsay@example.com",
+          "mobile_number": "559-555-1234",
+          "lead_source": null,
+          "notes": "Gate code 1234, Call recording: https://storage.vapi.ai/9e04c101-812d-4d7e-a5de-899860a27388-1751565315308-b4edccdc-546e-4c33-9807-994c6c3f336f-mono.wav",
+          "address": "1234 Example Road, Fresno 93728",
+          "appointment_datetime": "2025-07-04 09:00"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "AI Agent1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HCP Create Customer": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent1": {
+      "main": [
+        [
+          {
+            "node": "Execute Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Workflow": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "any"
+  },
+  "versionId": "7b7761e7-3faa-49bd-9d65-cdb417ed6bef",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "d9e08b03f66bed3e457d91934829145fe883e6ff4c831e245eea7603c9679cd0"
+  },
+  "id": "7vy6ilULCtrE5O2T",
+  "tags": []
+}

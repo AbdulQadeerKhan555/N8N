@@ -1,0 +1,1698 @@
+{
+  "name": "Voice Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "demo-voice-agent",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -16,
+        80
+      ],
+      "id": "ff1f0b15-90f0-4991-b219-12dd8b43e3e1",
+      "name": "Webhook",
+      "webhookId": "c29d767f-53ce-4e44-a8b6-91d6fef784c8"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1216,
+        64
+      ],
+      "id": "01fa0485-eeec-4ca9-8a21-7bf05d6b706a",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "jsCode": "const message = $json.message || {};\nlet data = {};\nlet found = false;\n\nconst looksValid = (obj = {}) => {\n  const required = ['appointmentType', 'appointmentDateTime', 'callerName'];\n  return required.every(k => obj?.[k]);\n};\n\nif (!found && looksValid(message.analysis?.structuredData)) {\n  data = message.analysis.structuredData;\n  found = true;\n}\n\nreturn [\n  {\n    json: {\n      ...$json,\n      structuredData: data,\n      hasStructuredData: found\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        80
+      ],
+      "id": "37dd79fd-ca76-4066-924a-56fd73d867ee",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "ba2703c4-317b-4fed-b87f-f029db50941b",
+              "leftValue": "={{ $json.hasStructuredData === true }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        448,
+        80
+      ],
+      "id": "dc82daba-27a7-4c45-84a5-3249661d24e8",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "url": "=https://api.vapi.ai/call/{{ $('Webhook').item.json.headers['x-call-id'] }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer ab6dc5dc-8700-4fa5-846f-f915671e5456"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        720,
+        64
+      ],
+      "id": "0a7a700b-1b21-4457-9801-56a862b156b6",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "base": {
+          "__rl": true,
+          "value": "appFFgMdTEC2Ak5GG",
+          "mode": "list",
+          "cachedResultName": "n8n test",
+          "cachedResultUrl": "https://airtable.com/appFFgMdTEC2Ak5GG"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tbl5TnjXnN8Aqb9Ii",
+          "mode": "list",
+          "cachedResultName": "Call logs",
+          "cachedResultUrl": "https://airtable.com/appFFgMdTEC2Ak5GG/tbl5TnjXnN8Aqb9Ii"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id": "={{ $json.id }}",
+            "Transcript": "={{ $json.transcript }}",
+            "Call Recording": "={{ $json.recordingUrl }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Transcript",
+              "displayName": "Transcript",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Call Recording",
+              "displayName": "Call Recording",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        976,
+        64
+      ],
+      "id": "3d1dd9a8-38f7-4e95-b9e8-7932cc07893f",
+      "name": "Create a record",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "XaztmaxHv2V2DC18",
+          "name": "Voice agent test"
+        }
+      }
+    }
+  ],
+  "pinData": {
+    "Webhook": [
+      {
+        "json": {
+          "headers": {
+            "host": "aqkhan987.app.n8n.cloud",
+            "user-agent": "axios/1.8.3",
+            "content-length": "33753",
+            "accept": "application/json, text/plain, */*",
+            "accept-encoding": "gzip, br",
+            "baggage": "sentry-environment=production,sentry-release=67a7f1455e74dd79c290ae81c8222ed6ba32d32d,sentry-public_key=a0021577936aec367b16615ad816c078,sentry-trace_id=106139badc3146828166a7765a04f640",
+            "cdn-loop": "cloudflare; loops=1; subreqs=1",
+            "cf-connecting-ip": "146.235.224.251",
+            "cf-ew-via": "15",
+            "cf-ipcountry": "US",
+            "cf-ray": "9b2d740b47618dfa-SJC",
+            "cf-visitor": "{\"scheme\":\"https\"}",
+            "cf-worker": "n8n.cloud",
+            "content-type": "application/json",
+            "cookie": "callId=019b4eab-a5e8-722a-b22f-cad207fdddb1",
+            "sentry-trace": "106139badc3146828166a7765a04f640-a51c5cfaab6eeb0b",
+            "x-call-id": "019b4eab-a5e8-722a-b22f-cad207fdddb1",
+            "x-forwarded-for": "146.235.224.251, 104.22.17.102",
+            "x-forwarded-host": "aqkhan987.app.n8n.cloud",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "traefik-prod-users-gwc-84-57fcbd49bc-mlqqv",
+            "x-is-trusted": "yes",
+            "x-real-ip": "146.235.224.251",
+            "x-vapi-secret": ""
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "message": {
+              "timestamp": 1766551569020,
+              "type": "tool-calls",
+              "toolCalls": [
+                {
+                  "id": "call_oowrtuuRbMlcJgRDqIvRSDlJ",
+                  "type": "function",
+                  "function": {
+                    "name": "call_data_to_n8n",
+                    "arguments": {
+                      "callerName": "Abdul Qadir Khan",
+                      "callerPhone": "03460748515",
+                      "callerEmail": "aq272570@gmail.com",
+                      "address": "Al Madinah hostel, Lariadabhakar",
+                      "appointmentType": "Meeting with CEO Faisal Rahman",
+                      "appointmentDateTime": "2025-12-26T08:00:00",
+                      "specialInstructions": "Discuss company sales",
+                      "referralSource": "Shareholder of the company"
+                    }
+                  }
+                }
+              ],
+              "toolCallList": [
+                {
+                  "id": "call_oowrtuuRbMlcJgRDqIvRSDlJ",
+                  "type": "function",
+                  "function": {
+                    "name": "call_data_to_n8n",
+                    "arguments": {
+                      "callerName": "Abdul Qadir Khan",
+                      "callerPhone": "03460748515",
+                      "callerEmail": "aq272570@gmail.com",
+                      "address": "Al Madinah hostel, Lariadabhakar",
+                      "appointmentType": "Meeting with CEO Faisal Rahman",
+                      "appointmentDateTime": "2025-12-26T08:00:00",
+                      "specialInstructions": "Discuss company sales",
+                      "referralSource": "Shareholder of the company"
+                    }
+                  }
+                }
+              ],
+              "toolWithToolCallList": [
+                {
+                  "type": "function",
+                  "function": {
+                    "name": "call_data_to_n8n",
+                    "parameters": {
+                      "type": "object",
+                      "required": [],
+                      "properties": {
+                        "address": {
+                          "type": "string",
+                          "default": "",
+                          "description": ""
+                        },
+                        "callerName": {
+                          "type": "string",
+                          "default": "",
+                          "description": ""
+                        },
+                        "transcript": {
+                          "type": "string",
+                          "default": "",
+                          "description": ""
+                        },
+                        "callerEmail": {
+                          "type": "string",
+                          "default": "",
+                          "description": ""
+                        },
+                        "callerPhone": {
+                          "type": "string",
+                          "default": "",
+                          "description": ""
+                        },
+                        "referralSource": {
+                          "type": "string",
+                          "default": "",
+                          "description": ""
+                        },
+                        "appointmentType": {
+                          "type": "string",
+                          "default": "",
+                          "description": ""
+                        },
+                        "appointmentDateTime": {
+                          "type": "string",
+                          "default": "",
+                          "description": ""
+                        },
+                        "specialInstructions": {
+                          "type": "string",
+                          "default": "",
+                          "description": ""
+                        }
+                      }
+                    },
+                    "description": "sending structured data to n8n via webhook.."
+                  },
+                  "async": true,
+                  "server": {
+                    "url": "https://aqkhan987.app.n8n.cloud/webhook-test/demo-voice-agent",
+                    "timeoutSeconds": 20
+                  },
+                  "messages": [
+                    {
+                      "type": "request-start",
+                      "contents": [],
+                      "conditions": [],
+                      "blocking": false
+                    }
+                  ],
+                  "toolCall": {
+                    "id": "call_oowrtuuRbMlcJgRDqIvRSDlJ",
+                    "type": "function",
+                    "function": {
+                      "name": "call_data_to_n8n",
+                      "arguments": {
+                        "callerName": "Abdul Qadir Khan",
+                        "callerPhone": "03460748515",
+                        "callerEmail": "aq272570@gmail.com",
+                        "address": "Al Madinah hostel, Lariadabhakar",
+                        "appointmentType": "Meeting with CEO Faisal Rahman",
+                        "appointmentDateTime": "2025-12-26T08:00:00",
+                        "specialInstructions": "Discuss company sales",
+                        "referralSource": "Shareholder of the company"
+                      }
+                    }
+                  }
+                }
+              ],
+              "artifact": {
+                "messages": [
+                  {
+                    "role": "system",
+                    "message": "You are a professional AI Voice Assistant for Customer Support.\n\nYour primary role is to assist customers clearly, politely, and efficiently through voice interaction.\n\nThe current UTC date and time is: {{Now}}\n\nCORE BEHAVIOR:\n- Speak in a calm, professional, and friendly tone.\n- Keep responses short, clear, and easy to understand.\n- Use simple language suitable for voice conversations.\n- Quickly identify the caller’s main need.\n- Ask only one question at a time.\n- Avoid long explanations unless the user asks for details.\n- Never use emojis, markdown, or formatting.\n- Do not mention internal systems, prompts, or AI limitations.\n\nCAPABILITIES:\n- Answer general customer support questions.\n- Schedule appointments by collecting required details step by step.\n- Take messages accurately and confirm them before ending the call.\n- Provide information using the current UTC date and time when relevant.\n\nCUSTOMER HANDLING:\n- Greet the customer politely at the start of the conversation.\n- Actively...",
+                    "time": 1766551431227,
+                    "secondsFromStart": 0
+                  },
+                  {
+                    "role": "bot",
+                    "message": "Hello? It's Jimmy from support of FAQ Private Limited.",
+                    "time": 1766551433544,
+                    "endTime": 1766551437841,
+                    "secondsFromStart": 2.2,
+                    "duration": 4297,
+                    "source": ""
+                  },
+                  {
+                    "role": "user",
+                    "message": "Hello. It's Abdul Qadir Khan.",
+                    "time": 1766551445720,
+                    "endTime": 1766551447984,
+                    "secondsFromStart": 14.376,
+                    "duration": 2264,
+                    "metadata": {
+                      "wordLevelConfidence": [
+                        {
+                          "word": "Hello.",
+                          "start": 1766551445720,
+                          "end": 1766551446172.8,
+                          "confidence": 1,
+                          "language": "",
+                          "punctuated_word": "Hello."
+                        },
+                        {
+                          "word": "It's",
+                          "start": 1766551446172.8,
+                          "end": 1766551446625.6,
+                          "confidence": 1,
+                          "language": "",
+                          "punctuated_word": "It's"
+                        },
+                        {
+                          "word": "Abdul",
+                          "start": 1766551446625.6,
+                          "end": 1766551447078.4,
+                          "confidence": 0.9883,
+                          "language": "",
+                          "punctuated_word": "Abdul"
+                        },
+                        {
+                          "word": "Qadir",
+                          "start": 1766551447078.4,
+                          "end": 1766551447531.2,
+                          "confidence": 0.9731,
+                          "language": "",
+                          "punctuated_word": "Qadir"
+                        },
+                        {
+                          "word": "Khan.",
+                          "start": 1766551447531.2,
+                          "end": 1766551447984,
+                          "confidence": 0.9995,
+                          "language": "",
+                          "punctuated_word": "Khan."
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "role": "bot",
+                    "message": "Hello, mister Abdelkadir Khan. How can I assist you today?",
+                    "time": 1766551449099,
+                    "endTime": 1766551452081,
+                    "secondsFromStart": 17.755,
+                    "duration": 2982,
+                    "source": ""
+                  },
+                  {
+                    "role": "user",
+                    "message": "Can you help me to book my meeting with CEO of FAQ Private Limited, Faisal Rehman?",
+                    "time": 1766551456611,
+                    "endTime": 1766551463504,
+                    "secondsFromStart": 25.267,
+                    "duration": 6893,
+                    "metadata": {
+                      "wordLevelConfidence": [
+                        {
+                          "word": "Can",
+                          "start": 1766551456611,
+                          "end": 1766551457041.8125,
+                          "confidence": 0.9995,
+                          "language": "",
+                          "punctuated_word": "Can"
+                        },
+                        {
+                          "word": "you",
+                          "start": 1766551457041.8125,
+                          "end": 1766551457472.625,
+                          "confidence": 1,
+                          "language": "",
+                          "punctuated_word": "you"
+                        },
+                        {
+                          "word": "help",
+                          "start": 1766551457472.625,
+                          "end": 1766551457903.4375,
+                          "confidence": 1,
+                          "language": "",
+                          "punctuated_word": "help"
+                        },
+                        {
+                          "word": "me",
+                          "start": 1766551457903.4375,
+                          "end": 1766551458334.25,
+                          "confidence": 1,
+                          "language": "",
+                          "punctuated_word": "me"
+                        },
+                        {
+                          "word": "to",
+                          "start": 1766551458334.25,
+                          "end": 1766551458765.0625,
+                          "confidence": 1,
+                          "language": "",
+                          "punctuated_word": "to"
+                        },
+                        {
+                          "word": "book",
+                          "start": 1766551458765.0625,
+                          "end": 1766551459195.875,
+                          "confidence": 0.9995,
+                          "language": "",
+                          "punctuated_word": "book"
+                        },
+                        {
+                          "word": "my",
+                          "start": 1766551459195.875,
+                          "end": 1766551459626.6875,
+                          "confidence": 1,
+                          "language": "",
+                          "punctuated_word": "my"
+                        },
+                        {
+                          "word": "meeting",
+                          "start": 1766551459626.6875,
+                          "end": 1766551460057.5,
+                          "confidence": 1,
+                          "language": "",
+                          "punctuated_word": "meeting"
+                        },
+                        {
+                          "word": "with",
+                          "start": 1766551460057.5,
+                          "end": 1766551460488.3125,
+                          "confidence": 1,
+                          "language": "",
+                          "punctuated_word": "with"
+                        },
+                        {
+                          "word": "CEO",
+                          "start": 1766551460488.3125,
+                          "end": 1766551460919.125,
+                          "confidence": 0.999,
+                          "language": "",
+                          "punctuated_word": "CEO"
+                        },
+                        {
+                          "word": "of",
+                          "start": 1766551460919.125,
+                          "end": 1766551461349.9375,
+                          "confidence": 1,
+                          "language": "",
+                          "punctuated_word": "of"
+                        },
+                        {
+                          "word": "FAQ",
+                          "start": 1766551461349.9375,
+                          "end": 1766551461780.75,
+                          "confidence": 0.9995,
+                          "language": "",
+                          "punctuated_word": "FAQ"
+                        },
+                        {
+                          "word": "Private",
+                          "start": 1766551461780.75,
+                          "end": 1766551462211.5625,
+                          "confidence": 0.9771,
+                          "language": "",
+                          "punctuated_word": "Private"
+                        },
+                        {
+                          "word": "Limited,",
+                          "start": 1766551462211.5625,
+                          "end": 1766551462642.375,
+                          "confidence": 0.9976,
+                          "language": "",
+                          "punctuated_word": "Limited,"
+                        },
+                        {
+                          "word": "Faisal",
+                          "start": 1766551462642.375,
+                          "end": 1766551463073.1875,
+                          "confidence": 0.9668,
+                          "language": "",
+                          "punctuated_word": "Faisal"
+                        },
+                        {
+                          "word": "Rehman?",
+                          "start": 1766551463073.1875,
+                          "end": 1766551463504,
+                          "confidence": 0.9976,
+                          "language": "",
+                          "punctuated_word": "Rehman?"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "role": "bot",
+                    "message": "Certainly, no, I can help you with that. May I know the date and time you would like to schedule the meeting with Faisal Raymond?",
+                    "time": 1766551464528,
+                    "endTime": 1766551470241,
+                    "secondsFromStart": 33.184,
+                    "duration": 5713,
+                    "source": ""
+                  },
+                  {
+                    "role": "user",
+                    "message": "I want to schedule this meeting on twenty sixth December twenty twenty five at eight AM.",
+                    "time": 1766551475728,
+                    "endTime": 1766551482064,
+                    "secondsFromStart": 44.384,
+                    "duration": 6336,
+                    "metadata": {
+                      "wordLevelConfidence": [
+                        {
+                          "word": "I",
+                          "start": 1766551475728,
+                          "end": 1766551476124,
+                          "confidence": 1,
+                          "language": "",
+                          "punctuated_word": "I"
+                        },
+                        {
+                          "word": "want",
+                          "start": 1766551476124,
+                          "end": 1766551476520,
+                          "confidence": 1,
+                          "language": "",
+                          "punctuated_word": "want"
+                        },
+                        {
+                          "word": "to",
+                          "start": 1766551476520,
+                          "end": 1766551476916,
+                          "confidence": 1,
+                          "language": "",
+                          "punctuated_word": "to"
+                        },
+                        {
+                          "word": "schedule",
+                          "start": 1766551476916,
+                          "end": 1766551477312,
+                          "confidence": 1,
+                          "language": "",
+                          "punctuated_word": "schedule"
+                        },
+                        {
+                          "word": "this",
+                          "start": 1766551477312,
+                          "end": 1766551477708,
+                          "confidence": 1,
+                          "language": "",
+                          "punctuated_word": "this"
+                        },
+                        {
+                          "word": "meeting",
+                          "start": 1766551477708,
+                          "end": 1766551478104,
+                          "confidence": 1,
+                          "language": "",
+                          "punctuated_word": "meeting"
+                        },
+                        {
+                          "word": "on",
+                          "start": 1766551478104,
+                          "end": 1766551478500,
+                          "confidence": 1,
+                          "language": "",
+                          "punctuated_word": "on"
+                        },
+                        {
+                          "word": "twenty",
+                          "start": 1766551478500,
+                          "end": 1766551478896,
+                          "confidence": 1,
+                          "language": "",
+                          "punctuated_word": "twenty"
+                        },
+                        {
+                          "word": "sixth",
+                          "start": 1766551478896,
+                          "end": 1766551479292,
+                          "confidence": 0.9951,
+                          "language": "",
+                          "punctuated_word": "sixth"
+                        },
+                        {
+                          "word": "December",
+                          "start": 1766551479292,
+                          "end": 1766551479688,
+                          "confidence": 0.9985,
+                          "language": "",
+                          "punctuated_word": "December"
+                        },
+                        {
+                          "word": "twenty",
+                          "start": 1766551479688,
+                          "end": 1766551480084,
+                          "confidence": 1,
+                          "language": "",
+                          "punctuated_word": "twenty"
+                        },
+                        {
+                          "word": "twenty",
+                          "start": 1766551480084,
+                          "end": 1766551480480,
+                          "confidence": 1,
+                          "language": "",
+                          "punctuated_word": "twenty"
+                        },
+                        {
+                          "word": "five",
+                          "start": 1766551480480,
+                          "end": 1766551480876,
+                          "confidence": 1,
+                          "language": "",
+                          "punctuated_word": "five"
+                        },
+                        {
+                          "word": "at",
+                          "start": 1766551480876,
+                          "end": 1766551481272,
+                          "confidence": 1,
+                          "language": "",
+                          "punctuated_word": "at"
+                        },
+                        {
+                          "word": "eight",
+                          "start": 1766551481272,
+                          "end": 1766551481668,
+                          "confidence": 1,
+                          "language": "",
+                          "punctuated_word": "eight"
+                        },
+                        {
+                          "word": "AM.",
+                          "start": 1766551481668,
+                          "end": 1766551482064,
+                          "confidence": 1,
+                          "language": "",
+                          "punctuated_word": "AM."
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "role": "bot",
+                    "message": "Thank you. Could you please provide your phone number for the appointment?",
+                    "time": 1766551483177,
+                    "endTime": 1766551486161,
+                    "secondsFromStart": 51.833,
+                    "duration": 2984,
+                    "source": ""
+                  },
+                  {
+                    "role": "user",
+                    "message": "Yes. It's zero three four six zero seven four eight five one five.",
+                    "time": 1766551490909,
+                    "endTime": 1766551494864,
+                    "secondsFromStart": 59.565,
+                    "duration": 3955,
+                    "metadata": {
+                      "wordLevelConfidence": [
+                        {
+                          "word": "Yes.",
+                          "start": 1766551490909,
+                          "end": 1766551491213.2307,
+                          "confidence": 1,
+                          "language": "",
+                          "punctuated_word": "Yes."
+                        },
+                        {
+                          "word": "It's",
+                          "start": 1766551491213.2307,
+                          "end": 1766551491517.4614,
+                          "confidence": 1,
+                          "language": "",
+                          "punctuated_word": "It's"
+                        },
+                        {
+                          "word": "zero",
+                          "start": 1766551491517.4614,
+                          "end": 1766551491821.6924,
+                          "confidence": 1,
+                          "language": "",
+                          "punctuated_word": "zero"
+                        },
+                        {
+                          "word": "three",
+                          "start": 1766551491821.6924,
+                          "end": 1766551492125.923,
+                          "confidence": 1,
+                          "language": "",
+                          "punctuated_word": "three"
+                        },
+                        {
+                          "word": "four",
+                          "start": 1766551492125.923,
+                          "end": 1766551492430.1538,
+                          "confidence": 1,
+                          "language": "",
+                          "punctuated_word": "four"
+                        },
+                        {
+                          "word": "six",
+                          "start": 1766551492430.1538,
+                          "end": 1766551492734.3845,
+                          "confidence": 1,
+                          "language": "",
+                          "punctuated_word": "six"
+                        },
+                        {
+                          "word": "zero",
+                          "start": 1766551492734.3845,
+                          "end": 1766551493038.6155,
+                          "confidence": 1,
+                          "language": "",
+                          "punctuated_word": "zero"
+                        },
+                        {
+                          "word": "seven",
+                          "start": 1766551493038.6155,
+                          "end": 1766551493342.8462,
+                          "confidence": 1,
+                          "language": "",
+                          "punctuated_word": "seven"
+                        },
+                        {
+                          "word": "four",
+                          "start": 1766551493342.8462,
+                          "end": 1766551493647.077,
+                          "confidence": 1,
+                          "language": "",
+                          "punctuated_word": "four"
+                        },
+                        {
+                          "word": "eight",
+                          "start": 1766551493647.077,
+                          "end": 1766551493951.3076,
+                          "confidence": 1,
+                          "language": "",
+                          "punctuated_word": "eight"
+                        },
+                        {
+                          "word": "five",
+                          "start": 1766551493951.3076,
+                          "end": 1766551494255.5386,
+                          "confidence": 1,
+                          "language": "",
+                          "punctuated_word": "five"
+                        },
+                        {
+                          "word": "one",
+                          "start": 1766551494255.5386,
+                          "end": 1766551494559.7693,
+                          "confidence": 1,
+                          "language": "",
+                          "punctuated_word": "one"
+                        },
+                        {
+                          "word": "five.",
+                          "start": 1766551494559.7693,
+                          "end": 1766551494864,
+                          "confidence": 1,
+                          "language": "",
+                          "punctuated_word": "five."
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "role": "bot",
+                    "message": "Thank you. May I also have your email address, please?",
+                    "time": 1766551495951,
+                    "endTime": 1766551498641,
+                    "secondsFromStart": 64.607,
+                    "duration": 2690,
+                    "source": ""
+                  },
+                  {
+                    "role": "user",
+                    "message": "A q two seven two five seven zero at Gmail dot com.",
+                    "time": 1766551503208,
+                    "endTime": 1766551506304,
+                    "secondsFromStart": 71.864,
+                    "duration": 3096,
+                    "metadata": {
+                      "wordLevelConfidence": [
+                        {
+                          "word": "A",
+                          "start": 1766551503208,
+                          "end": 1766551503466,
+                          "confidence": 0.6597,
+                          "language": "",
+                          "punctuated_word": "A"
+                        },
+                        {
+                          "word": "q",
+                          "start": 1766551503466,
+                          "end": 1766551503724,
+                          "confidence": 0.7979,
+                          "language": "",
+                          "punctuated_word": "q"
+                        },
+                        {
+                          "word": "two",
+                          "start": 1766551503724,
+                          "end": 1766551503982,
+                          "confidence": 1,
+                          "language": "",
+                          "punctuated_word": "two"
+                        },
+                        {
+                          "word": "seven",
+                          "start": 1766551503982,
+                          "end": 1766551504240,
+                          "confidence": 1,
+                          "language": "",
+                          "punctuated_word": "seven"
+                        },
+                        {
+                          "word": "two",
+                          "start": 1766551504240,
+                          "end": 1766551504498,
+                          "confidence": 1,
+                          "language": "",
+                          "punctuated_word": "two"
+                        },
+                        {
+                          "word": "five",
+                          "start": 1766551504498,
+                          "end": 1766551504756,
+                          "confidence": 1,
+                          "language": "",
+                          "punctuated_word": "five"
+                        },
+                        {
+                          "word": "seven",
+                          "start": 1766551504756,
+                          "end": 1766551505014,
+                          "confidence": 1,
+                          "language": "",
+                          "punctuated_word": "seven"
+                        },
+                        {
+                          "word": "zero",
+                          "start": 1766551505014,
+                          "end": 1766551505272,
+                          "confidence": 1,
+                          "language": "",
+                          "punctuated_word": "zero"
+                        },
+                        {
+                          "word": "at",
+                          "start": 1766551505272,
+                          "end": 1766551505530,
+                          "confidence": 1,
+                          "language": "",
+                          "punctuated_word": "at"
+                        },
+                        {
+                          "word": "Gmail",
+                          "start": 1766551505530,
+                          "end": 1766551505788,
+                          "confidence": 0.8374,
+                          "language": "",
+                          "punctuated_word": "Gmail"
+                        },
+                        {
+                          "word": "dot",
+                          "start": 1766551505788,
+                          "end": 1766551506046,
+                          "confidence": 1,
+                          "language": "",
+                          "punctuated_word": "dot"
+                        },
+                        {
+                          "word": "com.",
+                          "start": 1766551506046,
+                          "end": 1766551506304,
+                          "confidence": 1,
+                          "language": "",
+                          "punctuated_word": "com."
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "role": "bot",
+                    "message": "Thanks, mister Abdelkadir Khan. Do you have any special instructions or topics to discuss during the meeting with Faisal Rahman?",
+                    "time": 1766551507757,
+                    "endTime": 1766551514001,
+                    "secondsFromStart": 76.413,
+                    "duration": 6244,
+                    "source": ""
+                  },
+                  {
+                    "role": "user",
+                    "message": "I want discuss company sales.",
+                    "time": 1766551517330,
+                    "endTime": 1766551518944,
+                    "secondsFromStart": 85.986,
+                    "duration": 1614,
+                    "metadata": {
+                      "wordLevelConfidence": [
+                        {
+                          "word": "I",
+                          "start": 1766551517330,
+                          "end": 1766551517652.8,
+                          "confidence": 0.9971,
+                          "language": "",
+                          "punctuated_word": "I"
+                        },
+                        {
+                          "word": "want",
+                          "start": 1766551517652.8,
+                          "end": 1766551517975.6,
+                          "confidence": 0.999,
+                          "language": "",
+                          "punctuated_word": "want"
+                        },
+                        {
+                          "word": "discuss",
+                          "start": 1766551517975.6,
+                          "end": 1766551518298.4,
+                          "confidence": 0.7769,
+                          "language": "",
+                          "punctuated_word": "discuss"
+                        },
+                        {
+                          "word": "company",
+                          "start": 1766551518298.4,
+                          "end": 1766551518621.2,
+                          "confidence": 1,
+                          "language": "",
+                          "punctuated_word": "company"
+                        },
+                        {
+                          "word": "sales.",
+                          "start": 1766551518621.2,
+                          "end": 1766551518944,
+                          "confidence": 1,
+                          "language": "",
+                          "punctuated_word": "sales."
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "role": "bot",
+                    "message": "Got it. Could you please share your address for the meeting record?",
+                    "time": 1766551520008,
+                    "endTime": 1766551522481,
+                    "secondsFromStart": 88.664,
+                    "duration": 2473,
+                    "source": ""
+                  },
+                  {
+                    "role": "user",
+                    "message": "It's Al Madinah hostel, Lariadabhakar.",
+                    "time": 1766551526364,
+                    "endTime": 1766551529264,
+                    "secondsFromStart": 95.02,
+                    "duration": 2900,
+                    "metadata": {
+                      "wordLevelConfidence": [
+                        {
+                          "word": "It's",
+                          "start": 1766551526364,
+                          "end": 1766551526944,
+                          "confidence": 1,
+                          "language": "",
+                          "punctuated_word": "It's"
+                        },
+                        {
+                          "word": "Al",
+                          "start": 1766551526944,
+                          "end": 1766551527524,
+                          "confidence": 0.9067,
+                          "language": "",
+                          "punctuated_word": "Al"
+                        },
+                        {
+                          "word": "Madinah",
+                          "start": 1766551527524,
+                          "end": 1766551528104,
+                          "confidence": 0.9917,
+                          "language": "",
+                          "punctuated_word": "Madinah"
+                        },
+                        {
+                          "word": "hostel,",
+                          "start": 1766551528104,
+                          "end": 1766551528684,
+                          "confidence": 0.9966,
+                          "language": "",
+                          "punctuated_word": "hostel,"
+                        },
+                        {
+                          "word": "Lariadabhakar.",
+                          "start": 1766551528684,
+                          "end": 1766551529264,
+                          "confidence": 1,
+                          "language": "",
+                          "punctuated_word": "Lariadabhakar."
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "role": "bot",
+                    "message": "Thank you. Lastly, may I know how you heard about this meeting opportunity or referral source.",
+                    "time": 1766551530414,
+                    "endTime": 1766551535921,
+                    "secondsFromStart": 99.07,
+                    "duration": 3635,
+                    "source": ""
+                  },
+                  {
+                    "role": "user",
+                    "message": "Understood. I am the shareholder of this company.",
+                    "time": 1766551536648,
+                    "endTime": 1766551539104,
+                    "secondsFromStart": 105.304,
+                    "duration": 2456,
+                    "metadata": {
+                      "wordLevelConfidence": [
+                        {
+                          "word": "Understood.",
+                          "start": 1766551536648,
+                          "end": 1766551536955,
+                          "confidence": 1,
+                          "language": "",
+                          "punctuated_word": "Understood."
+                        },
+                        {
+                          "word": "I",
+                          "start": 1766551536955,
+                          "end": 1766551537262,
+                          "confidence": 1,
+                          "language": "",
+                          "punctuated_word": "I"
+                        },
+                        {
+                          "word": "am",
+                          "start": 1766551537262,
+                          "end": 1766551537569,
+                          "confidence": 0.9883,
+                          "language": "",
+                          "punctuated_word": "am"
+                        },
+                        {
+                          "word": "the",
+                          "start": 1766551537569,
+                          "end": 1766551537876,
+                          "confidence": 1,
+                          "language": "",
+                          "punctuated_word": "the"
+                        },
+                        {
+                          "word": "shareholder",
+                          "start": 1766551537876,
+                          "end": 1766551538183,
+                          "confidence": 0.9995,
+                          "language": "",
+                          "punctuated_word": "shareholder"
+                        },
+                        {
+                          "word": "of",
+                          "start": 1766551538183,
+                          "end": 1766551538490,
+                          "confidence": 1,
+                          "language": "",
+                          "punctuated_word": "of"
+                        },
+                        {
+                          "word": "this",
+                          "start": 1766551538490,
+                          "end": 1766551538797,
+                          "confidence": 1,
+                          "language": "",
+                          "punctuated_word": "this"
+                        },
+                        {
+                          "word": "company.",
+                          "start": 1766551538797,
+                          "end": 1766551539104,
+                          "confidence": 1,
+                          "language": "",
+                          "punctuated_word": "company."
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "role": "bot",
+                    "message": "Thank you for the information. I will now check the availability for the meeting on December twenty sixth two thousand twenty five at eight AM. Please hold on a moment.",
+                    "time": 1766551540719,
+                    "endTime": 1766551549441,
+                    "secondsFromStart": 109.375,
+                    "duration": 8722,
+                    "source": ""
+                  },
+                  {
+                    "toolCalls": [
+                      {
+                        "id": "call_X7yeYJUjEXO43pJVNzVIeOQQ",
+                        "type": "function",
+                        "function": {
+                          "name": "google_calendar_check_availability_tool",
+                          "arguments": "{\n  \"startDateTime\": \"2025-12-26T08:00:00\",\n  \"endDateTime\": \"2025-12-26T09:00:00\",\n  \"timeZone\": \"Asia/Karachi\"\n}"
+                        }
+                      }
+                    ],
+                    "role": "tool_calls",
+                    "message": "",
+                    "time": 1766551544783,
+                    "secondsFromStart": 113.439
+                  },
+                  {
+                    "role": "bot",
+                    "message": "The CEO of Faisal Roman is available on December twenty sixth two thousand twenty five at a eight AM.",
+                    "time": 1766551551834,
+                    "endTime": 1766551559201,
+                    "secondsFromStart": 120.49,
+                    "duration": 7367,
+                    "source": ""
+                  },
+                  {
+                    "role": "tool_call_result",
+                    "time": 1766551553789,
+                    "secondsFromStart": 122.445,
+                    "name": "google_calendar_check_availability_tool",
+                    "result": "{\n  \"busy\": [],\n  \"free\": [\n    {\n      \"start\": \"2025-12-26T08:00:00.000Z\",\n      \"end\": \"2025-12-26T09:00:00.000Z\"\n    }\n  ]\n}",
+                    "toolCallId": "call_X7yeYJUjEXO43pJVNzVIeOQQ"
+                  },
+                  {
+                    "toolCalls": [
+                      {
+                        "id": "call_zZbhN3wUzo0ugO3apWhFsI2w",
+                        "type": "function",
+                        "function": {
+                          "name": "google_calendar_tool",
+                          "arguments": "{\n  \"startDateTime\": \"2025-12-26T08:00:00\",\n  \"endDateTime\": \"2025-12-26T09:00:00\",\n  \"summary\": \"Meeting with CEO Faisal Rahman to discuss company sales\",\n  \"timeZone\": \"Asia/Karachi\",\n  \"attendees\": [\"aq272570@gmail.com\"]\n}"
+                        }
+                      }
+                    ],
+                    "role": "tool_calls",
+                    "message": "",
+                    "time": 1766551555663,
+                    "secondsFromStart": 124.319
+                  },
+                  {
+                    "role": "bot",
+                    "message": "I will proceed to book the the meeting for you.",
+                    "time": 1766551560167,
+                    "endTime": 1766551563361,
+                    "secondsFromStart": 128.823,
+                    "duration": 3194,
+                    "source": ""
+                  },
+                  {
+                    "role": "tool_call_result",
+                    "time": 1766551567419,
+                    "secondsFromStart": 136.075,
+                    "name": "google_calendar_tool",
+                    "result": "{\n  \"kind\": \"calendar#event\",\n  \"etag\": \"\\\"3533103112271326\\\"\",\n  \"id\": \"4p2h6uevromn1h6btp70b8q55k\",\n  \"status\": \"confirmed\",\n  \"htmlLink\": \"https://www.google.com/calendar/event?eid=NHAyaDZ1ZXZyb21uMWg2YnRwNzBiOHE1NWsgYXEyNzI1NzBAbQ\",\n  \"created\": \"2025-12-24T04:45:55.000Z\",\n  \"updated\": \"2025-12-24T04:45:56.135Z\",\n  \"summary\": \"Meeting with CEO Faisal Rahman to discuss company sales\",\n  \"creator\": {\"email\": \"aq272570@gmail.com\", \"self\": true},\n  \"organizer\": {\"email\": \"aq272570@gmail.com\", \"self\": true},\n  \"start\": {\n    \"dateTime\": \"2025-12-26T08:00:00+05:00\",\n    \"timeZone\": \"Asia/Karachi\"\n  },\n  \"end\": {\n    \"dateTime\": \"2025-12-26T09:00:00+05:00\",\n    \"timeZone\": \"Asia/Karachi\"\n  },\n  \"iCalUID\": \"4p2h6uevromn1h6btp70b8q55k@google.com\",\n  \"sequence\": 0,\n  \"attendees\": [\n    {\n      \"email\": \"aq272570@gmail.com\",\n      \"organizer\": true,\n      \"self\": true,\n      \"responseStatus\": \"needsAction\"\n    }\n  ],\n  \"reminders\": {\"useDefault\": true},\n  \"eventType\": \"default\"\n}",
+                    "toolCallId": "call_zZbhN3wUzo0ugO3apWhFsI2w"
+                  },
+                  {
+                    "toolCalls": [
+                      {
+                        "id": "call_oowrtuuRbMlcJgRDqIvRSDlJ",
+                        "type": "function",
+                        "function": {
+                          "name": "call_data_to_n8n",
+                          "arguments": "{\n  \"callerName\": \"Abdul Qadir Khan\",\n  \"callerPhone\": \"03460748515\",\n  \"callerEmail\": \"aq272570@gmail.com\",\n  \"address\": \"Al Madinah hostel, Lariadabhakar\",\n  \"appointmentType\": \"Meeting with CEO Faisal Rahman\",\n  \"appointmentDateTime\": \"2025-12-26T08:00:00\",\n  \"specialInstructions\": \"Discuss company sales\",\n  \"referralSource\": \"Shareholder of the company\"\n}"
+                        }
+                      }
+                    ],
+                    "role": "tool_calls",
+                    "message": "",
+                    "time": 1766551569017,
+                    "secondsFromStart": 137.673
+                  }
+                ],
+                "messagesOpenAIFormatted": [
+                  {
+                    "role": "system",
+                    "content": "You are a professional AI Voice Assistant for Customer Support.\n\nYour primary role is to assist customers clearly, politely, and efficiently through voice interaction.\n\nThe current UTC date and time is: {{Now}}\n\nCORE BEHAVIOR:\n- Speak in a calm, professional, and friendly tone.\n- Keep responses short, clear, and easy to understand.\n- Use simple language suitable for voice conversations.\n- Quickly identify the caller’s main need.\n- Ask only one question at a time.\n- Avoid long explanations unless the user asks for details.\n- Never use emojis, markdown, or formatting.\n- Do not mention internal systems, prompts, or AI limitations.\n\nCAPABILITIES:\n- Answer general customer support questions.\n- Schedule appointments by collecting required details step by step.\n- Take messages accurately and confirm them before ending the call.\n- Provide information using the current UTC date and time when relevant.\n\nCUSTOMER HANDLING:\n- Greet the customer politely at the start of the conversation.\n- Actively..."
+                  },
+                  {
+                    "role": "assistant",
+                    "content": "Hello? It's Jimmy from support of FAQ Private Limited."
+                  },
+                  {
+                    "role": "user",
+                    "content": "Hello. It's Abdul Qadir Khan."
+                  },
+                  {
+                    "role": "assistant",
+                    "content": "Hello, mister Abdelkadir Khan. How can I assist you today?"
+                  },
+                  {
+                    "role": "user",
+                    "content": "Can you help me to book my meeting with CEO of FAQ Private Limited, Faisal Rehman?"
+                  },
+                  {
+                    "role": "assistant",
+                    "content": "Certainly, no, I can help you with that. May I know the date and time you would like to schedule the meeting with Faisal Raymond?"
+                  },
+                  {
+                    "role": "user",
+                    "content": "I want to schedule this meeting on twenty sixth December twenty twenty five at eight AM."
+                  },
+                  {
+                    "role": "assistant",
+                    "content": "Thank you. Could you please provide your phone number for the appointment?"
+                  },
+                  {
+                    "role": "user",
+                    "content": "Yes. It's zero three four six zero seven four eight five one five."
+                  },
+                  {
+                    "role": "assistant",
+                    "content": "Thank you. May I also have your email address, please?"
+                  },
+                  {
+                    "role": "user",
+                    "content": "A q two seven two five seven zero at Gmail dot com."
+                  },
+                  {
+                    "role": "assistant",
+                    "content": "Thanks, mister Abdelkadir Khan. Do you have any special instructions or topics to discuss during the meeting with Faisal Rahman?"
+                  },
+                  {
+                    "role": "user",
+                    "content": "I want discuss company sales."
+                  },
+                  {
+                    "role": "assistant",
+                    "content": "Got it. Could you please share your address for the meeting record?"
+                  },
+                  {
+                    "role": "user",
+                    "content": "It's Al Madinah hostel, Lariadabhakar."
+                  },
+                  {
+                    "role": "assistant",
+                    "content": "Thank you. Lastly, may I know how you heard about this meeting opportunity or referral source."
+                  },
+                  {
+                    "role": "user",
+                    "content": "Understood. I am the shareholder of this company."
+                  },
+                  {
+                    "role": "assistant",
+                    "content": "Thank you for the information. I will now check the availability for the meeting on December twenty sixth two thousand twenty five at eight AM. Please hold on a moment.",
+                    "tool_calls": [
+                      {
+                        "id": "call_X7yeYJUjEXO43pJVNzVIeOQQ",
+                        "type": "function",
+                        "function": {
+                          "name": "google_calendar_check_availability_tool",
+                          "arguments": "{\n  \"startDateTime\": \"2025-12-26T08:00:00\",\n  \"endDateTime\": \"2025-12-26T09:00:00\",\n  \"timeZone\": \"Asia/Karachi\"\n}"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "role": "tool",
+                    "tool_call_id": "call_X7yeYJUjEXO43pJVNzVIeOQQ",
+                    "content": "{\n  \"busy\": [],\n  \"free\": [\n    {\n      \"start\": \"2025-12-26T08:00:00.000Z\",\n      \"end\": \"2025-12-26T09:00:00.000Z\"\n    }\n  ]\n}"
+                  },
+                  {
+                    "role": "assistant",
+                    "content": "The CEO of Faisal Roman is available on December twenty sixth two thousand twenty five at a eight AM.",
+                    "tool_calls": [
+                      {
+                        "id": "call_zZbhN3wUzo0ugO3apWhFsI2w",
+                        "type": "function",
+                        "function": {
+                          "name": "google_calendar_tool",
+                          "arguments": "{\n  \"startDateTime\": \"2025-12-26T08:00:00\",\n  \"endDateTime\": \"2025-12-26T09:00:00\",\n  \"summary\": \"Meeting with CEO Faisal Rahman to discuss company sales\",\n  \"timeZone\": \"Asia/Karachi\",\n  \"attendees\": [\"aq272570@gmail.com\"]\n}"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "role": "tool",
+                    "tool_call_id": "call_zZbhN3wUzo0ugO3apWhFsI2w",
+                    "content": "{\n  \"kind\": \"calendar#event\",\n  \"etag\": \"\\\"3533103112271326\\\"\",\n  \"id\": \"4p2h6uevromn1h6btp70b8q55k\",\n  \"status\": \"confirmed\",\n  \"htmlLink\": \"https://www.google.com/calendar/event?eid=NHAyaDZ1ZXZyb21uMWg2YnRwNzBiOHE1NWsgYXEyNzI1NzBAbQ\",\n  \"created\": \"2025-12-24T04:45:55.000Z\",\n  \"updated\": \"2025-12-24T04:45:56.135Z\",\n  \"summary\": \"Meeting with CEO Faisal Rahman to discuss company sales\",\n  \"creator\": {\"email\": \"aq272570@gmail.com\", \"self\": true},\n  \"organizer\": {\"email\": \"aq272570@gmail.com\", \"self\": true},\n  \"start\": {\n    \"dateTime\": \"2025-12-26T08:00:00+05:00\",\n    \"timeZone\": \"Asia/Karachi\"\n  },\n  \"end\": {\n    \"dateTime\": \"2025-12-26T09:00:00+05:00\",\n    \"timeZone\": \"Asia/Karachi\"\n  },\n  \"iCalUID\": \"4p2h6uevromn1h6btp70b8q55k@google.com\",\n  \"sequence\": 0,\n  \"attendees\": [\n    {\n      \"email\": \"aq272570@gmail.com\",\n      \"organizer\": true,\n      \"self\": true,\n      \"responseStatus\": \"needsAction\"\n    }\n  ],\n  \"reminders\": {\"useDefault\": true},\n  \"eventType\": \"default\"\n}"
+                  },
+                  {
+                    "role": "assistant",
+                    "content": "I will proceed to book the the meeting for you.",
+                    "tool_calls": [
+                      {
+                        "id": "call_oowrtuuRbMlcJgRDqIvRSDlJ",
+                        "type": "function",
+                        "function": {
+                          "name": "call_data_to_n8n",
+                          "arguments": "{\n  \"callerName\": \"Abdul Qadir Khan\",\n  \"callerPhone\": \"03460748515\",\n  \"callerEmail\": \"aq272570@gmail.com\",\n  \"address\": \"Al Madinah hostel, Lariadabhakar\",\n  \"appointmentType\": \"Meeting with CEO Faisal Rahman\",\n  \"appointmentDateTime\": \"2025-12-26T08:00:00\",\n  \"specialInstructions\": \"Discuss company sales\",\n  \"referralSource\": \"Shareholder of the company\"\n}"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "role": "tool",
+                    "tool_call_id": "call_oowrtuuRbMlcJgRDqIvRSDlJ",
+                    "content": "Tool Result Still Pending But Proceed Further If Possible."
+                  }
+                ]
+              },
+              "call": {
+                "id": "019b4eab-a5e8-722a-b22f-cad207fdddb1",
+                "orgId": "462248d7-b899-4150-8347-f1acaf79095c",
+                "createdAt": "2025-12-24T04:43:50.632Z",
+                "updatedAt": "2025-12-24T04:43:50.632Z",
+                "type": "webCall",
+                "cost": 0,
+                "monitor": {
+                  "listenUrl": "wss://phone-call-websocket.oci-us-sanjose-1-backend-production3.vapi.ai/019b4eab-a5e8-722a-b22f-cad207fdddb1/listen",
+                  "controlUrl": "https://phone-call-websocket.oci-us-sanjose-1-backend-production3.vapi.ai/019b4eab-a5e8-722a-b22f-cad207fdddb1/control"
+                },
+                "transport": {
+                  "conversationType": "voice",
+                  "provider": "daily",
+                  "videoRecordingEnabled": false,
+                  "assistantVideoEnabled": false,
+                  "roomDeleteOnUserLeaveEnabled": true,
+                  "callUrl": "https://vapi.daily.co/qQV2CAcoTq4902K47Kny"
+                },
+                "webCallUrl": "https://vapi.daily.co/qQV2CAcoTq4902K47Kny",
+                "status": "queued",
+                "assistantId": "6ca7ffb6-cbc0-4b7b-beb5-56002918eae9",
+                "assistantOverrides": {
+                  "clientMessages": [
+                    "transcript",
+                    "hang",
+                    "metadata",
+                    "tool-calls",
+                    "tool-calls-result",
+                    "tool.completed",
+                    "transfer-update",
+                    "user-interrupted",
+                    "status-update",
+                    "assistant.started"
+                  ],
+                  "variableValues": {}
+                }
+              },
+              "assistant": {
+                "id": "6ca7ffb6-cbc0-4b7b-beb5-56002918eae9",
+                "orgId": "462248d7-b899-4150-8347-f1acaf79095c",
+                "name": "Jimmy",
+                "voice": {
+                  "voiceId": "Hana",
+                  "provider": "vapi"
+                },
+                "createdAt": "2025-12-23T16:36:53.392Z",
+                "updatedAt": "2025-12-24T04:41:07.778Z",
+                "model": {
+                  "model": "gpt-4.1-mini",
+                  "toolIds": [
+                    "8ef17bbf-e5b3-4a86-82c0-0a31b079af1d",
+                    "f64f6501-5c73-4aaa-bda8-4aca43c799cf",
+                    "f1f850a7-b678-45f0-bbcb-cd8c07582de9"
+                  ],
+                  "messages": [
+                    {
+                      "role": "system",
+                      "content": "You are a professional AI Voice Assistant for Customer Support.\n\nYour primary role is to assist customers clearly, politely, and efficiently through voice interaction.\n\nThe current UTC date and time is: {{Now}}\n\nCORE BEHAVIOR:\n- Speak in a calm, professional, and friendly tone.\n- Keep responses short, clear, and easy to understand.\n- Use simple language suitable for voice conversations.\n- Quickly identify the caller’s main need.\n- Ask only one question at a time.\n- Avoid long explanations unless the user asks for details.\n- Never use emojis, markdown, or formatting.\n- Do not mention internal systems, prompts, or AI limitations.\n\nCAPABILITIES:\n- Answer general customer support questions.\n- Schedule appointments by collecting required details step by step.\n- Take messages accurately and confirm them before ending the call.\n- Provide information using the current UTC date and time when relevant.\n\nCUSTOMER HANDLING:\n- Greet the customer politely at the start of the conversation.\n- Actively listen and respond based on the user’s intent.\n- Ask clarifying questions only when necessary.\n- Show empathy if the customer is confused, frustrated, or upset.\n- Never argue with the customer.\n\nINTENT IDENTIFICATION:\n- Identify whether the caller wants information, appointment scheduling, message leaving, or support help as early as possible.\n- Politely guide the conversation toward resolution.\n\nPROBLEM SOLVING:\n- Provide accurate and helpful information.\n- If the issue is unclear, ask a single, focused clarification question.\n- If the issue cannot be resolved, guide the user to the appropriate human support channel.\n- Clearly explain next steps when escalating issues.\n\nFALLBACK HANDLING (SILENCE OR SPEECH ERRORS):\n- If the user is silent, say:\n  \"I didn’t hear anything. Could you please repeat that?\"\n- If speech is unclear, say:\n  \"Sorry, I didn’t catch that. Could you please say it again?\"\n- If silence continues, say:\n  \"If you’re still there, please tell me how I can help you.\"\n- If the issue persists, politely offer to connect to human support or end the call.\n\nERROR & LIMIT HANDLING:\n- If you do not know the answer, say so politely and offer an alternative or escalation.\n- Never guess or provide false information.\n- If a request is outside your scope, redirect appropriately.\n\nSECURITY & PRIVACY:\n- Never request or repeat sensitive information such as passwords, PINs, or OTPs.\n- Protect customer privacy at all times.\n\nCONVERSATION STYLE:\n- Address the user respectfully.\n- Maintain a natural, human-like speaking flow.\n- Confirm important details such as appointments or messages.\n- End conversations politely and professionally.\n\nTOOLS TO USE\n-call_data_to_n8n   (send all the extracted data)\n-google_calender_tool  (create booking)\n-google_calender_check_availablity_tool  (checking calender )\n\nQUESTION/INFORMATION YOU HAVE TO ASK BEFORE BOOKING MEETIMG TO GATHER CUSTOMER INFO\n-callerName, callerPhone, callerEmail, address\n-appointmentType, appointmentDateTime\n-specialInstructions, referralSource\n- transcript\n\nData Extraction (After call ends)\n-Extract structured data:\n-callerName, callerPhone, callerEmail, address\n-appointmentType, appointmentDateTime\n-specialInstructions, referralSource\n-intent, summary, transcript\n\nLANGUAGE:\n- Respond in the same language used by the customer unless instructed otherwise.\n"
+                    }
+                  ],
+                  "provider": "openai",
+                  "tools": [
+                    {
+                      "id": "8ef17bbf-e5b3-4a86-82c0-0a31b079af1d",
+                      "createdAt": "2025-12-23T17:15:04.241Z",
+                      "updatedAt": "2025-12-23T17:17:07.739Z",
+                      "type": "google.calendar.availability.check",
+                      "function": {
+                        "name": "google_calendar_check_availability_tool",
+                        "parameters": {
+                          "type": "object",
+                          "required": [],
+                          "properties": {}
+                        },
+                        "description": "check the aumatic customer support google calender availablity"
+                      },
+                      "messages": [
+                        {
+                          "type": "request-start",
+                          "blocking": false
+                        }
+                      ],
+                      "metadata": {
+                        "timeZone": "Asia/Karachi",
+                        "calendarId": "aq272570@gmail.com"
+                      },
+                      "orgId": "462248d7-b899-4150-8347-f1acaf79095c"
+                    },
+                    {
+                      "id": "f64f6501-5c73-4aaa-bda8-4aca43c799cf",
+                      "createdAt": "2025-12-23T17:09:27.944Z",
+                      "updatedAt": "2025-12-23T17:14:14.460Z",
+                      "type": "google.calendar.event.create",
+                      "function": {
+                        "name": "google_calendar_tool",
+                        "parameters": {
+                          "type": "object",
+                          "required": [],
+                          "properties": {}
+                        },
+                        "description": "Automate the customer support, google calender create event tool."
+                      },
+                      "messages": [
+                        {
+                          "type": "request-start",
+                          "blocking": false
+                        }
+                      ],
+                      "metadata": {
+                        "timeZone": "Asia/Karachi",
+                        "calendarId": "aq272570@gmail.com"
+                      },
+                      "orgId": "462248d7-b899-4150-8347-f1acaf79095c"
+                    },
+                    {
+                      "id": "f1f850a7-b678-45f0-bbcb-cd8c07582de9",
+                      "createdAt": "2025-12-23T18:02:12.860Z",
+                      "updatedAt": "2025-12-24T04:41:24.660Z",
+                      "type": "function",
+                      "function": {
+                        "name": "call_data_to_n8n",
+                        "parameters": {
+                          "type": "object",
+                          "required": [],
+                          "properties": {
+                            "address": {
+                              "type": "string",
+                              "default": "",
+                              "description": ""
+                            },
+                            "callerName": {
+                              "type": "string",
+                              "default": "",
+                              "description": ""
+                            },
+                            "transcript": {
+                              "type": "string",
+                              "default": "",
+                              "description": ""
+                            },
+                            "callerEmail": {
+                              "type": "string",
+                              "default": "",
+                              "description": ""
+                            },
+                            "callerPhone": {
+                              "type": "string",
+                              "default": "",
+                              "description": ""
+                            },
+                            "referralSource": {
+                              "type": "string",
+                              "default": "",
+                              "description": ""
+                            },
+                            "appointmentType": {
+                              "type": "string",
+                              "default": "",
+                              "description": ""
+                            },
+                            "appointmentDateTime": {
+                              "type": "string",
+                              "default": "",
+                              "description": ""
+                            },
+                            "specialInstructions": {
+                              "type": "string",
+                              "default": "",
+                              "description": ""
+                            }
+                          }
+                        },
+                        "description": "sending structured data to n8n via webhook.."
+                      },
+                      "messages": [
+                        {
+                          "type": "request-start",
+                          "blocking": false
+                        }
+                      ],
+                      "orgId": "462248d7-b899-4150-8347-f1acaf79095c",
+                      "server": {
+                        "url": "https://aqkhan987.app.n8n.cloud/webhook-test/demo-voice-agent",
+                        "timeoutSeconds": 20
+                      },
+                      "async": true
+                    }
+                  ]
+                },
+                "firstMessage": "Hello. its Jimmy from support of FAQ private limited.",
+                "voicemailMessage": "Please call back when you're available.",
+                "endCallMessage": "Goodbye.",
+                "transcriber": {
+                  "model": "flux-general-en",
+                  "language": "en",
+                  "provider": "deepgram"
+                },
+                "clientMessages": [
+                  "transcript",
+                  "hang",
+                  "metadata",
+                  "tool-calls",
+                  "tool-calls-result",
+                  "tool.completed",
+                  "transfer-update",
+                  "user-interrupted",
+                  "status-update",
+                  "assistant.started"
+                ],
+                "serverMessages": [
+                  "end-of-call-report",
+                  "assistant.started"
+                ],
+                "analysisPlan": {
+                  "summaryPlan": {
+                    "enabled": false
+                  },
+                  "successEvaluationPlan": {
+                    "enabled": false
+                  }
+                },
+                "artifactPlan": {
+                  "structuredOutputIds": [
+                    "6f8343f5-50e6-425c-9e77-b57bbadea47b"
+                  ]
+                },
+                "server": {
+                  "url": "https://aqkhan987.app.n8n.cloud/webhook-test/demo-voice-agent",
+                  "timeoutSeconds": 20
+                },
+                "variableValues": {}
+              }
+            }
+          },
+          "webhookUrl": "https://aqkhan987.app.n8n.cloud/webhook-test/demo-voice-agent",
+          "executionMode": "test"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Create a record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a record": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "08e0f785-1e0d-47fa-9494-db9f15b161a9",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "d1647479a68c1439e777a2d725daafc4b500c45d1773b112e7abef32cde7ec75"
+  },
+  "id": "KwqGsU5syiAvDBy6",
+  "tags": []
+}

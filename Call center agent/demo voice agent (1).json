@@ -1,0 +1,1394 @@
+{
+  "name": "demo voice agent",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "demo-voice-agent",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -736,
+        -48
+      ],
+      "id": "2ac7298e-2515-4186-9bfa-6345b61db914",
+      "name": "Webhook",
+      "webhookId": "df12a78c-75ac-4ae8-a780-82b0950ee756"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        384,
+        -128
+      ],
+      "id": "e744a440-7d6a-45a4-82bc-9d02c37eddc8",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "jsCode": "/*\n  1. Try to parse toolCalls[0].function.arguments (agent path)\n  2. If empty, check message.analysis.structuredData  (EoC path)\n  3. If still empty, check message.artifact.analysis.structuredData (legacy)\n  4. Set hasStructuredData = true when we find appointmentType etc.\n*/\n\nconst msg   = $json.message || {};\nlet   data  = {};   // will hold the structured object we find\nlet   found = false;\n\n// ---------- Helper -----------\nconst looksValid = (obj = {}) => {\n  const required = ['appointmentType', 'appointmentDateTime', 'callerName'];\n  return required.every(k => obj?.[k]);\n};\n\n// ---------- 1) agent tool call ----------\ntry {\n  const argStr = msg.toolCalls?.[0]?.function?.arguments || '{}';\n  const parsed = JSON.parse(argStr);\n  if (looksValid(parsed)) {\n    data  = parsed;\n    found = true;\n  }\n} catch (e) {\n  // ignore parse errors\n}\n\n// ---------- 2) new EoC property ----------\nif (!found && looksValid(msg.analysis?.structuredData)) {\n  data  = msg.analysis.structuredData;\n  found = true;\n}\n\n// ---------- 3) legacy artifact path ----------\nif (!found && looksValid(msg.artifact?.analysis?.structuredData)) {\n  data  = msg.artifact.analysis.structuredData;\n  found = true;\n}\n\n// ---------- Output ----------\nreturn [\n  {\n    json: {\n      ...$json,\n      structuredData: data,      // pass the object forward\n      hasStructuredData: found   // flag for IF node\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -544,
+        -48
+      ],
+      "id": "8ba6ca23-9a36-4fd2-ba59-73f9a72f39ca",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "2d8d0092-ec66-4d72-9cee-fe9521a8ba54",
+              "leftValue": "={{ $json.hasStructuredData === true }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -368,
+        -48
+      ],
+      "id": "171173ac-97da-4baf-9931-25916c265b19",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "url": "=https://api.vapi.ai/call/{{ $('Webhook').item.json.headers['x-call-id'] }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer 88d8042d-7754-429b-b7f6-5811ab58da03"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -160,
+        -128
+      ],
+      "id": "6038d837-af09-4720-a3a4-2ffee0378e98",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "base": {
+          "__rl": true,
+          "value": "appxYZF1D0Hq44EKw",
+          "mode": "list",
+          "cachedResultName": "n8n test",
+          "cachedResultUrl": "https://airtable.com/appxYZF1D0Hq44EKw"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblBV7cy7tXtvLbly",
+          "mode": "list",
+          "cachedResultName": "Inbound Calls",
+          "cachedResultUrl": "https://airtable.com/appxYZF1D0Hq44EKw/tblBV7cy7tXtvLbly"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Transcript": "={{ $json.transcript }}",
+            "Call Recording": "={{ $json.recordingUrl }}",
+            "Name": "={{ $('Webhook').item.json.body.message.analysis.structuredData.callerName }}",
+            "Email Address": "={{ $('Webhook').item.json.body.message.analysis.structuredData.callerEmail }}",
+            "Phone Number": "={{ $('Webhook').item.json.body.message.analysis.structuredData.callerPhone }}",
+            "Address": "={{ $('Webhook').item.json.body.message.analysis.structuredData.callerAddress }}",
+            "Referral Source": "={{ $('Webhook').item.json.body.message.analysis.structuredData.referralSource }}",
+            "Appointment Type": "={{ $('Webhook').item.json.body.message.analysis.structuredData.appointmentType }}",
+            "Appointment Date Time": "={{ $('Webhook').item.json.body.message.analysis.structuredData.appointmentDateTime }}",
+            "Special Instructions": "={{ $('Webhook').item.json.body.message.analysis.structuredData.specialInstructions }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Transcript",
+              "displayName": "Transcript",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Email Address",
+              "displayName": "Email Address",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Phone Number",
+              "displayName": "Phone Number",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Address",
+              "displayName": "Address",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Referral Source",
+              "displayName": "Referral Source",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Appointment Type",
+              "displayName": "Appointment Type",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Appointment Date Time",
+              "displayName": "Appointment Date Time",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Special Instructions",
+              "displayName": "Special Instructions",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Call Recording",
+              "displayName": "Call Recording",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        -128
+      ],
+      "id": "9a4367ff-e7c0-46fe-a391-5dab8edf1a96",
+      "name": "Create a record",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "H9CdgpTMlZzPvTam",
+          "name": "voice agent test"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "9nNj1y6gViaUSAkH",
+          "mode": "list",
+          "cachedResultName": "VA Assistant 1"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        192,
+        -128
+      ],
+      "id": "1a1c9625-808a-479b-a1eb-edaa8ed0c0f5",
+      "name": "Execute Workflow"
+    }
+  ],
+  "pinData": {
+    "Webhook": [
+      {
+        "json": {
+          "headers": {
+            "host": "tyson.app.n8n.cloud",
+            "user-agent": "axios/1.8.3",
+            "content-length": "46067",
+            "accept": "application/json, text/plain, */*",
+            "accept-encoding": "gzip, br",
+            "baggage": "sentry-environment=production,sentry-public_key=a0021577936aec367b16615ad816c078,sentry-trace_id=e98251bdd9bf4213b1e5e775e95b8899",
+            "cdn-loop": "cloudflare; loops=1; subreqs=1",
+            "cf-connecting-ip": "54.200.161.239",
+            "cf-ew-via": "15",
+            "cf-ipcountry": "US",
+            "cf-ray": "959840ba30e55ece-PDX",
+            "cf-visitor": "{\"scheme\":\"https\"}",
+            "cf-worker": "n8n.cloud",
+            "content-type": "application/json",
+            "cookie": "callId=9e04c101-812d-4d7e-a5de-899860a27388",
+            "sentry-trace": "e98251bdd9bf4213b1e5e775e95b8899-8b678acc2992b86e",
+            "traceparent": "00-3992d51fadb73bf7359cdb43aa3d1864-d9efa7736fe0feff-01",
+            "x-call-id": "9e04c101-812d-4d7e-a5de-899860a27388",
+            "x-forwarded-for": "54.200.161.239, 172.68.174.184",
+            "x-forwarded-host": "tyson.app.n8n.cloud",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "traefik-prod-users-gwc-20-65bb84f5c9-xx8dm",
+            "x-is-trusted": "yes",
+            "x-real-ip": "54.200.161.239",
+            "x-vapi-secret": ""
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "message": {
+              "timestamp": 1751565316129,
+              "type": "end-of-call-report",
+              "analysis": {
+                "summary": "Lindsey Gonzales called Automate AI Consulting to book an appointment. During the call, Lindsey provided her contact information, including name, phone number, email, and address with a gate code. An appointment was successfully scheduled for July 4, 2025, at 9 AM.",
+                "structuredData": {
+                  "callerName": "Lindsey Gonzales",
+                  "callerPhone": "559-555-1234",
+                  "callerEmail": "Lindsay@example.com",
+                  "callerAddress": "1234 Example Road, Fresno 93728",
+                  "appointmentType": "Consultation",
+                  "appointmentDateTime": "2025-07-04 09:00",
+                  "specialInstructions": "Gate code 1234",
+                  "referralSource": null,
+                  "transcript": "AI: Hi. Thanks for calling automate AI consulting. This is Tanya. How can I help you?\nUser: Hi. I'd like to book an appointment.\nAI: Of course, I can help you with that. May I have your first and last name, please?\nUser: Yeah. It's Lindsey Gonzales.\nAI: Thank you, Lindsay. Could you please provide your phone number?\nUser: 5 5 9 5 5 5 1 2 3 4.\nAI: Thank you. May I also have your email address?\nUser: Lindsay at example dot com?\nAI: Thank you. Could you provide your street address including city and ZIP code?\nUser: 1 2 3 4 Example Road, Fresno 9 3 7 2 8.\nAI: Thank you. Are there any, um, special access instructions such as gate codes? That we should know about?\nUser: Gate code 1 2 3 4.\nAI: Thank you. 1 moment while I check our calendar. Thank you.\nAI: For your appointment, we have July 4 at 8 AM or July 4 at 9 AM available. Works best for you.\nUser: Um, let's do July fourth at 9 AM please.\nAI: Great. You're booked for July fourth 2025 at 9 AM. Is there anything else I can help you with today?\nUser: No. That's it. Thank you very much.\nAI: You're very welcome. Have a great day. Goodbye.\nUser: Goodbye."
+                },
+                "successEvaluation": "true"
+              },
+              "artifact": {
+                "messages": [
+                  {
+                    "role": "system",
+                    "message": "(See attached PDFs in Knowledge Base for full SOPs)\n🌟 Identity & Purpose\nYou are Tanya, office coordinator at Automate AI Consulting. Efficiently handle inbound calls: schedule appointments, take messages, answer general inquiries clearly and warmly, reference the knowledge base, and promptly address customer concerns. Current UTC date/time: Jul 3, 2025, 5:52 PM UTC\n\nWhen calling a tool or thinking about internal actions, never verbalize or describe the internal tool call, its parameters, or your internal thoughts to the user. Always keep internal actions silent, and wait for the tool’s response before speaking again. Only speak clear, conversational responses appropriate for the caller.\n\n☎️ Conversation Flow\n\nQuickly identify caller’s need.\n\nAsk one question at a time and pause clearly.\n\nStandard Questions:\n\n“May I have your first and last name, please?” (Last name optional.)\n\n“Could you please provide your phone number?” 🚫 (Internal: Confirm digit-by-digit silently.)\n\n“May I also have your email address?”\n\n“Could you provide your street address, including city and zip code?”\n\n“Any special access instructions, such as gate codes?”\n\n“How did you hear about us?” 🚫 (Internal: If referral, ask politely who referred.)\n\n🔍 Checking Calendar (google_calendar_check_availability_tool2)\n\nSay: “One moment while I check our calendar, thank you.”\n\n🚫 (Internal: Call the tool silently without speaking its name, parameters, or JSON.) Call tool with:\n\ncalendarId (automateaiconsulting@gmail.com)\n\ntimeMin: current timestamp Jul 3, 2025, 5:52 PM UTC\n\ntimeMax: 7 days ahead from today’s date (use the current date/time provided above; NEVER schedule in past dates or years)\n\ntimeZone: \"America/Los_Angeles\" 🚫 (Internal: Do NOT ask caller for timezone.)\n\nSilently wait for JSON response.\n\nFrom returned availableSlots, select earliest 2 slots between 08:00–16:00.\n\nOffer clearly:\n\n“For your appointment, we have July {{slot1Day}} at {{slot1Time}} or July {{slot2Day}} at {{slot2Time}} available. Which works best for you?”\n\n🗓️ Creating Booking (google_calendar_tool2)\n\nAfter caller selects a time:\n\n🚫 (Internal: Call the tool silently without saying the tool name, parameters, or internal notes out loud.)\n\nCall tool with:\n\ncalendarId\n\nsummary: “Automate AI Consulting appointment for {{callerName}}”\n\nstart: confirmed ISO start time\n\nend: start +60 mins\n\nattendees: caller’s email (if provided)\n\nUpon confirmation from tool:\n\n“Great! You’re booked for {{confirmedMonth}} {{confirmedDay}}, {{confirmedYear}} at {{confirmedTime}}.”\n\n🚫 (Internal: After confirming the appointment clearly and the caller says a natural goodbye such as \"thanks,\" \"bye,\" or similar, politely end the call immediately using the endcall function without speaking it aloud.)\n\n📋 Data Extraction (After call ends)\n\nExtract structured data:\n\ncallerName, callerPhone, callerEmail, address\n\nappointmentType, appointmentDateTime\n\nspecialInstructions, referralSource\n\nintent, summary, transcript\n\n🚫 (Internal: Immediately send all extracted data via call_data_to_n8n2 silently, without verbalizing it.)",
+                    "time": 1751565135881,
+                    "secondsFromStart": 0
+                  },
+                  {
+                    "role": "bot",
+                    "message": "Hi. Thanks for calling automate AI consulting. This is Tanya. How can I help you?",
+                    "time": 1751565137306,
+                    "endTime": 1751565141986,
+                    "secondsFromStart": 1.1999999,
+                    "duration": 4360,
+                    "source": ""
+                  },
+                  {
+                    "role": "user",
+                    "message": "Hi. I'd like to book an appointment.",
+                    "time": 1751565142706,
+                    "endTime": 1751565144086,
+                    "secondsFromStart": 6.6,
+                    "duration": 1380
+                  },
+                  {
+                    "role": "bot",
+                    "message": "Of course, I can help you with that. May I have your first and last name, please?",
+                    "time": 1751565145176,
+                    "endTime": 1751565149546.001,
+                    "secondsFromStart": 9.07,
+                    "duration": 4120.0009765625,
+                    "source": ""
+                  },
+                  {
+                    "role": "user",
+                    "message": "Yeah. It's Lindsey Gonzales.",
+                    "time": 1751565151216.001,
+                    "endTime": 1751565152996,
+                    "secondsFromStart": 15.110001,
+                    "duration": 1779.9990234375
+                  },
+                  {
+                    "role": "bot",
+                    "message": "Thank you, Lindsay. Could you please provide your phone number?",
+                    "time": 1751565154326,
+                    "endTime": 1751565156826,
+                    "secondsFromStart": 18.22,
+                    "duration": 2500,
+                    "source": ""
+                  },
+                  {
+                    "role": "user",
+                    "message": "5 5 9 5 5 5 1 2 3 4.",
+                    "time": 1751565158746,
+                    "endTime": 1751565161726,
+                    "secondsFromStart": 22.64,
+                    "duration": 2980
+                  },
+                  {
+                    "role": "bot",
+                    "message": "Thank you. May I also have your email address?",
+                    "time": 1751565163256,
+                    "endTime": 1751565165436,
+                    "secondsFromStart": 27.15,
+                    "duration": 2180,
+                    "source": ""
+                  },
+                  {
+                    "role": "user",
+                    "message": "Lindsay at example dot com?",
+                    "time": 1751565166816,
+                    "endTime": 1751565168845.998,
+                    "secondsFromStart": 30.71,
+                    "duration": 2029.998046875
+                  },
+                  {
+                    "role": "bot",
+                    "message": "Thank you. Could you provide your street address including city and ZIP code?",
+                    "time": 1751565169836,
+                    "endTime": 1751565173776,
+                    "secondsFromStart": 33.73,
+                    "duration": 3699.9970703125,
+                    "source": ""
+                  },
+                  {
+                    "role": "user",
+                    "message": "1 2 3 4 Example Road, Fresno 9 3 7 2 8.",
+                    "time": 1751565175246,
+                    "endTime": 1751565179496,
+                    "secondsFromStart": 39.14,
+                    "duration": 3939.9951171875
+                  },
+                  {
+                    "role": "bot",
+                    "message": "Thank you. Are there any, um, special access instructions such as gate codes? That we should know about?",
+                    "time": 1751565181046.002,
+                    "endTime": 1751565187326,
+                    "secondsFromStart": 44.940002,
+                    "duration": 5569.9990234375,
+                    "source": ""
+                  },
+                  {
+                    "role": "user",
+                    "message": "Gate code 1 2 3 4.",
+                    "time": 1751565189656,
+                    "endTime": 1751565191356,
+                    "secondsFromStart": 53.55,
+                    "duration": 1700
+                  },
+                  {
+                    "toolCalls": [
+                      {
+                        "id": "call_21S01CrtuRmMQDDORNu1OFQp",
+                        "type": "function",
+                        "function": {
+                          "name": "google_calendar_check_availability_tool2",
+                          "arguments": "{\n  \"calendarId\": \"automateaiconsulting@gmail.com\",\n  \"startDateTime\": \"2025-07-03T00:00:00\",\n  \"endDateTime\": \"2025-07-10T23:59:59\",\n  \"timeZone\": \"America/Los_Angeles\"\n}"
+                        }
+                      }
+                    ],
+                    "role": "tool_calls",
+                    "message": "",
+                    "time": 1751565192019,
+                    "secondsFromStart": 56.042
+                  },
+                  {
+                    "role": "bot",
+                    "message": "Thank you. 1 moment while I check our calendar. Thank you.",
+                    "time": 1751565192555.997,
+                    "endTime": 1751565195375.997,
+                    "secondsFromStart": 56.449997,
+                    "duration": 2820,
+                    "source": ""
+                  },
+                  {
+                    "role": "tool_call_result",
+                    "time": 1751565194626,
+                    "secondsFromStart": 58.649,
+                    "name": "google_calendar_check_availability_tool2",
+                    "result": "{\n  \"busy\": [\n    {\n      \"start\": \"2025-07-07T09:00:00-07:00\",\n      \"end\": \"2025-07-07T10:00:00-07:00\"\n    }\n  ],\n  \"free\": [\n    {\n      \"start\": \"2025-07-03T00:00:00.000Z\",\n      \"end\": \"2025-07-07T09:00:00-07:00\"\n    },\n    {\n      \"start\": \"2025-07-07T10:00:00-07:00\",\n      \"end\": \"2025-07-10T23:59:59.000Z\"\n    }\n  ]\n}",
+                    "toolCallId": "call_21S01CrtuRmMQDDORNu1OFQp"
+                  },
+                  {
+                    "role": "bot",
+                    "message": "For your appointment, we have July 4 at 8 AM or July 4 at 9 AM available. Works best for you.",
+                    "time": 1751565197296.002,
+                    "endTime": 1751565203306,
+                    "secondsFromStart": 61.190002,
+                    "duration": 5849.991943359375,
+                    "source": ""
+                  },
+                  {
+                    "role": "user",
+                    "message": "Um, let's do July fourth at 9 AM please.",
+                    "time": 1751565204295.995,
+                    "endTime": 1751565207666,
+                    "secondsFromStart": 68.189995,
+                    "duration": 3370.0048828125
+                  },
+                  {
+                    "toolCalls": [
+                      {
+                        "id": "call_BrPQn0Ymha5gSEwIByugdGr2",
+                        "type": "function",
+                        "function": {
+                          "name": "google_calendar_tool2",
+                          "arguments": "{\n  \"summary\": \"Automate AI Consulting appointment for Lindsey Gonzales\",\n  \"attendees\": [\"lindsay@example.com\"],\n  \"calendarId\": \"automateaiconsulting@gmail.com\",\n  \"timeZone\": \"America/Los_Angeles\",\n  \"startDateTime\": \"2025-07-04T09:00:00\",\n  \"endDateTime\": \"2025-07-04T10:00:00\"\n}"
+                        }
+                      }
+                    ],
+                    "role": "tool_calls",
+                    "message": "",
+                    "time": 1751565207500,
+                    "secondsFromStart": 71.523
+                  },
+                  {
+                    "role": "tool_call_result",
+                    "time": 1751565208380,
+                    "secondsFromStart": 72.403,
+                    "name": "google_calendar_tool2",
+                    "result": "{\n  \"kind\": \"calendar#event\",\n  \"etag\": \"\\\"3503130416328478\\\"\",\n  \"id\": \"es6rgfdkhiejngbrffsli1c9mk\",\n  \"status\": \"confirmed\",\n  \"htmlLink\": \"https://www.google.com/calendar/event?eid=ZXM2cmdmZGtoaWVqbmdicmZmc2xpMWM5bWsgYXV0b21hdGVhaWNvbnN1bHRpbmdAbQ\",\n  \"created\": \"2025-07-03T17:53:27.000Z\",\n  \"updated\": \"2025-07-03T17:53:28.164Z\",\n  \"summary\": \"Automate AI Consulting appointment for Lindsey Gonzales\",\n  \"creator\": {\n    \"email\": \"automateaiconsulting@gmail.com\",\n    \"self\": true\n  },\n  \"organizer\": {\n    \"email\": \"automateaiconsulting@gmail.com\",\n    \"self\": true\n  },\n  \"start\": {\n    \"dateTime\": \"2025-07-04T09:00:00-07:00\",\n    \"timeZone\": \"America/Los_Angeles\"\n  },\n  \"end\": {\n    \"dateTime\": \"2025-07-04T10:00:00-07:00\",\n    \"timeZone\": \"America/Los_Angeles\"\n  },\n  \"iCalUID\": \"es6rgfdkhiejngbrffsli1c9mk@google.com\",\n  \"sequence\": 0,\n  \"attendees\": [\n    {\n      \"email\": \"lindsay@example.com\",\n      \"responseStatus\": \"needsAction\"\n    }\n  ],\n  \"reminders\": {\"useDefault\": true},\n  \"eventType\": \"default\"\n}",
+                    "toolCallId": "call_BrPQn0Ymha5gSEwIByugdGr2"
+                  },
+                  {
+                    "role": "bot",
+                    "message": "Great. You're booked for July fourth 2025 at 9 AM. Is there anything else I can help you with today?",
+                    "time": 1751565210646,
+                    "endTime": 1751565217626,
+                    "secondsFromStart": 74.54,
+                    "duration": 6660,
+                    "source": ""
+                  },
+                  {
+                    "role": "user",
+                    "message": "No. That's it. Thank you very much.",
+                    "time": 1751565219156,
+                    "endTime": 1751565221015.996,
+                    "secondsFromStart": 83.05,
+                    "duration": 1859.99609375
+                  },
+                  {
+                    "role": "bot",
+                    "message": "You're very welcome. Have a great day. Goodbye.",
+                    "time": 1751565221876,
+                    "endTime": 1751565224295.995,
+                    "secondsFromStart": 85.77,
+                    "duration": 2419.9951171875,
+                    "source": ""
+                  },
+                  {
+                    "role": "user",
+                    "message": "Goodbye.",
+                    "time": 1751565225196,
+                    "endTime": 1751565225696,
+                    "secondsFromStart": 89.09,
+                    "duration": 500
+                  }
+                ],
+                "messagesOpenAIFormatted": [
+                  {
+                    "role": "system",
+                    "content": "(See attached PDFs in Knowledge Base for full SOPs)\n🌟 Identity & Purpose\nYou are Tanya, office coordinator at Automate AI Consulting. Efficiently handle inbound calls: schedule appointments, take messages, answer general inquiries clearly and warmly, reference the knowledge base, and promptly address customer concerns. Current UTC date/time: Jul 3, 2025, 5:52 PM UTC\n\nWhen calling a tool or thinking about internal actions, never verbalize or describe the internal tool call, its parameters, or your internal thoughts to the user. Always keep internal actions silent, and wait for the tool’s response before speaking again. Only speak clear, conversational responses appropriate for the caller.\n\n☎️ Conversation Flow\n\nQuickly identify caller’s need.\n\nAsk one question at a time and pause clearly.\n\nStandard Questions:\n\n“May I have your first and last name, please?” (Last name optional.)\n\n“Could you please provide your phone number?” 🚫 (Internal: Confirm digit-by-digit silently.)\n\n“May I also have your email address?”\n\n“Could you provide your street address, including city and zip code?”\n\n“Any special access instructions, such as gate codes?”\n\n“How did you hear about us?” 🚫 (Internal: If referral, ask politely who referred.)\n\n🔍 Checking Calendar (google_calendar_check_availability_tool2)\n\nSay: “One moment while I check our calendar, thank you.”\n\n🚫 (Internal: Call the tool silently without speaking its name, parameters, or JSON.) Call tool with:\n\ncalendarId (automateaiconsulting@gmail.com)\n\ntimeMin: current timestamp Jul 3, 2025, 5:52 PM UTC\n\ntimeMax: 7 days ahead from today’s date (use the current date/time provided above; NEVER schedule in past dates or years)\n\ntimeZone: \"America/Los_Angeles\" 🚫 (Internal: Do NOT ask caller for timezone.)\n\nSilently wait for JSON response.\n\nFrom returned availableSlots, select earliest 2 slots between 08:00–16:00.\n\nOffer clearly:\n\n“For your appointment, we have July {{slot1Day}} at {{slot1Time}} or July {{slot2Day}} at {{slot2Time}} available. Which works best for you?”\n\n🗓️ Creating Booking (google_calendar_tool2)\n\nAfter caller selects a time:\n\n🚫 (Internal: Call the tool silently without saying the tool name, parameters, or internal notes out loud.)\n\nCall tool with:\n\ncalendarId\n\nsummary: “Automate AI Consulting appointment for {{callerName}}”\n\nstart: confirmed ISO start time\n\nend: start +60 mins\n\nattendees: caller’s email (if provided)\n\nUpon confirmation from tool:\n\n“Great! You’re booked for {{confirmedMonth}} {{confirmedDay}}, {{confirmedYear}} at {{confirmedTime}}.”\n\n🚫 (Internal: After confirming the appointment clearly and the caller says a natural goodbye such as \"thanks,\" \"bye,\" or similar, politely end the call immediately using the endcall function without speaking it aloud.)\n\n📋 Data Extraction (After call ends)\n\nExtract structured data:\n\ncallerName, callerPhone, callerEmail, address\n\nappointmentType, appointmentDateTime\n\nspecialInstructions, referralSource\n\nintent, summary, transcript\n\n🚫 (Internal: Immediately send all extracted data via call_data_to_n8n2 silently, without verbalizing it.)"
+                  },
+                  {
+                    "role": "assistant",
+                    "content": "Hi. Thanks for calling automate AI consulting. This is Tanya. How can I help you?"
+                  },
+                  {
+                    "role": "user",
+                    "content": "Hi. I'd like to book an appointment."
+                  },
+                  {
+                    "role": "assistant",
+                    "content": "Of course, I can help you with that. May I have your first and last name, please?"
+                  },
+                  {
+                    "role": "user",
+                    "content": "Yeah. It's Lindsey Gonzales."
+                  },
+                  {
+                    "role": "assistant",
+                    "content": "Thank you, Lindsay. Could you please provide your phone number?"
+                  },
+                  {
+                    "role": "user",
+                    "content": "5 5 9 5 5 5 1 2 3 4."
+                  },
+                  {
+                    "role": "assistant",
+                    "content": "Thank you. May I also have your email address?"
+                  },
+                  {
+                    "role": "user",
+                    "content": "Lindsay at example dot com?"
+                  },
+                  {
+                    "role": "assistant",
+                    "content": "Thank you. Could you provide your street address including city and ZIP code?"
+                  },
+                  {
+                    "role": "user",
+                    "content": "1 2 3 4 Example Road, Fresno 9 3 7 2 8."
+                  },
+                  {
+                    "role": "assistant",
+                    "content": "Thank you. Are there any, um, special access instructions such as gate codes? That we should know about?"
+                  },
+                  {
+                    "role": "user",
+                    "content": "Gate code 1 2 3 4."
+                  },
+                  {
+                    "role": "assistant",
+                    "tool_calls": [
+                      {
+                        "id": "call_21S01CrtuRmMQDDORNu1OFQp",
+                        "type": "function",
+                        "function": {
+                          "name": "google_calendar_check_availability_tool2",
+                          "arguments": "{\n  \"calendarId\": \"automateaiconsulting@gmail.com\",\n  \"startDateTime\": \"2025-07-03T00:00:00\",\n  \"endDateTime\": \"2025-07-10T23:59:59\",\n  \"timeZone\": \"America/Los_Angeles\"\n}"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "role": "tool",
+                    "tool_call_id": "call_21S01CrtuRmMQDDORNu1OFQp",
+                    "content": "{\n  \"busy\": [\n    {\n      \"start\": \"2025-07-07T09:00:00-07:00\",\n      \"end\": \"2025-07-07T10:00:00-07:00\"\n    }\n  ],\n  \"free\": [\n    {\n      \"start\": \"2025-07-03T00:00:00.000Z\",\n      \"end\": \"2025-07-07T09:00:00-07:00\"\n    },\n    {\n      \"start\": \"2025-07-07T10:00:00-07:00\",\n      \"end\": \"2025-07-10T23:59:59.000Z\"\n    }\n  ]\n}"
+                  },
+                  {
+                    "role": "assistant",
+                    "content": "Thank you. 1 moment while I check our calendar. Thank you. For your appointment, we have July 4 at 8 AM or July 4 at 9 AM available. Works best for you."
+                  },
+                  {
+                    "role": "user",
+                    "content": "Um, let's do July fourth at 9 AM please."
+                  },
+                  {
+                    "role": "assistant",
+                    "tool_calls": [
+                      {
+                        "id": "call_BrPQn0Ymha5gSEwIByugdGr2",
+                        "type": "function",
+                        "function": {
+                          "name": "google_calendar_tool2",
+                          "arguments": "{\n  \"summary\": \"Automate AI Consulting appointment for Lindsey Gonzales\",\n  \"attendees\": [\"lindsay@example.com\"],\n  \"calendarId\": \"automateaiconsulting@gmail.com\",\n  \"timeZone\": \"America/Los_Angeles\",\n  \"startDateTime\": \"2025-07-04T09:00:00\",\n  \"endDateTime\": \"2025-07-04T10:00:00\"\n}"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "role": "tool",
+                    "tool_call_id": "call_BrPQn0Ymha5gSEwIByugdGr2",
+                    "content": "{\n  \"kind\": \"calendar#event\",\n  \"etag\": \"\\\"3503130416328478\\\"\",\n  \"id\": \"es6rgfdkhiejngbrffsli1c9mk\",\n  \"status\": \"confirmed\",\n  \"htmlLink\": \"https://www.google.com/calendar/event?eid=ZXM2cmdmZGtoaWVqbmdicmZmc2xpMWM5bWsgYXV0b21hdGVhaWNvbnN1bHRpbmdAbQ\",\n  \"created\": \"2025-07-03T17:53:27.000Z\",\n  \"updated\": \"2025-07-03T17:53:28.164Z\",\n  \"summary\": \"Automate AI Consulting appointment for Lindsey Gonzales\",\n  \"creator\": {\n    \"email\": \"automateaiconsulting@gmail.com\",\n    \"self\": true\n  },\n  \"organizer\": {\n    \"email\": \"automateaiconsulting@gmail.com\",\n    \"self\": true\n  },\n  \"start\": {\n    \"dateTime\": \"2025-07-04T09:00:00-07:00\",\n    \"timeZone\": \"America/Los_Angeles\"\n  },\n  \"end\": {\n    \"dateTime\": \"2025-07-04T10:00:00-07:00\",\n    \"timeZone\": \"America/Los_Angeles\"\n  },\n  \"iCalUID\": \"es6rgfdkhiejngbrffsli1c9mk@google.com\",\n  \"sequence\": 0,\n  \"attendees\": [\n    {\n      \"email\": \"lindsay@example.com\",\n      \"responseStatus\": \"needsAction\"\n    }\n  ],\n  \"reminders\": {\"useDefault\": true},\n  \"eventType\": \"default\"\n}"
+                  },
+                  {
+                    "role": "assistant",
+                    "content": "Great. You're booked for July fourth 2025 at 9 AM. Is there anything else I can help you with today?"
+                  },
+                  {
+                    "role": "user",
+                    "content": "No. That's it. Thank you very much."
+                  },
+                  {
+                    "role": "assistant",
+                    "content": "You're very welcome. Have a great day. Goodbye."
+                  },
+                  {
+                    "role": "user",
+                    "content": "Goodbye."
+                  }
+                ],
+                "transcript": "AI: Hi. Thanks for calling automate AI consulting. This is Tanya. How can I help you?\nUser: Hi. I'd like to book an appointment.\nAI: Of course, I can help you with that. May I have your first and last name, please?\nUser: Yeah. It's Lindsey Gonzales.\nAI: Thank you, Lindsay. Could you please provide your phone number?\nUser: 5 5 9 5 5 5 1 2 3 4.\nAI: Thank you. May I also have your email address?\nUser: Lindsay at example dot com?\nAI: Thank you. Could you provide your street address including city and ZIP code?\nUser: 1 2 3 4 Example Road, Fresno 9 3 7 2 8.\nAI: Thank you. Are there any, um, special access instructions such as gate codes? That we should know about?\nUser: Gate code 1 2 3 4.\nAI: Thank you. 1 moment while I check our calendar. Thank you.\nAI: For your appointment, we have July 4 at 8 AM or July 4 at 9 AM available. Works best for you.\nUser: Um, let's do July fourth at 9 AM please.\nAI: Great. You're booked for July fourth 2025 at 9 AM. Is there anything else I can help you with today?\nUser: No. That's it. Thank you very much.\nAI: You're very welcome. Have a great day. Goodbye.\nUser: Goodbye.\n",
+                "recordingUrl": "https://storage.vapi.ai/9e04c101-812d-4d7e-a5de-899860a27388-1751565315308-b4edccdc-546e-4c33-9807-994c6c3f336f-mono.wav",
+                "stereoRecordingUrl": "https://storage.vapi.ai/9e04c101-812d-4d7e-a5de-899860a27388-1751565315308-88c48d16-9fda-40cc-9f33-6174bc6b5e40-stereo.wav",
+                "pcapUrl": "https://storage.vapi.ai/9e04c101-812d-4d7e-a5de-899860a27388-1751565239612-3b24e3a3-fae4-43cf-b651-50544667ea49-sip.pcap",
+                "recording": {
+                  "stereoUrl": "https://storage.vapi.ai/9e04c101-812d-4d7e-a5de-899860a27388-1751565315308-88c48d16-9fda-40cc-9f33-6174bc6b5e40-stereo.wav",
+                  "mono": {
+                    "combinedUrl": "https://storage.vapi.ai/9e04c101-812d-4d7e-a5de-899860a27388-1751565315308-b4edccdc-546e-4c33-9807-994c6c3f336f-mono.wav",
+                    "assistantUrl": "https://storage.vapi.ai/9e04c101-812d-4d7e-a5de-899860a27388-1751565315308-6e18fe8e-195a-4ee3-89ea-131a03a10099-mono.wav",
+                    "customerUrl": "https://storage.vapi.ai/9e04c101-812d-4d7e-a5de-899860a27388-1751565315308-92b18a98-0869-4478-a45b-9c1cb018047e-mono.wav"
+                  }
+                },
+                "nodes": [],
+                "variables": {},
+                "variableValues": {}
+              },
+              "startedAt": "2025-07-03T17:52:15.977Z",
+              "endedAt": "2025-07-03T17:53:56.884Z",
+              "endedReason": "customer-ended-call",
+              "cost": 0.2633,
+              "costBreakdown": {
+                "stt": 0.0294,
+                "llm": 0.1041,
+                "tts": 0.045,
+                "vapi": 0.0841,
+                "chat": 0,
+                "total": 0.2633,
+                "llmPromptTokens": 51168,
+                "llmCompletionTokens": 219,
+                "ttsCharacters": 900,
+                "voicemailDetectionCost": 0,
+                "knowledgeBaseCost": 0,
+                "analysisCostBreakdown": {
+                  "summary": 0.0001,
+                  "summaryPromptTokens": 413,
+                  "summaryCompletionTokens": 57,
+                  "structuredData": 0.0004,
+                  "structuredDataPromptTokens": 934,
+                  "structuredDataCompletionTokens": 482,
+                  "successEvaluation": 0.0002,
+                  "successEvaluationPromptTokens": 1220,
+                  "successEvaluationCompletionTokens": 10
+                }
+              },
+              "costs": [
+                {
+                  "type": "transcriber",
+                  "transcriber": {
+                    "provider": "deepgram",
+                    "model": "nova-2"
+                  },
+                  "minutes": 2.9981333333333335,
+                  "cost": 0.02936064
+                },
+                {
+                  "type": "model",
+                  "model": {
+                    "provider": "openai",
+                    "model": "gpt-4.1"
+                  },
+                  "promptTokens": 51168,
+                  "completionTokens": 219,
+                  "cost": 0.104088
+                },
+                {
+                  "type": "voice",
+                  "voice": {
+                    "provider": "vapi",
+                    "voiceId": "SOMi3x0jOeeIAXZ0GkxQ",
+                    "model": "eleven_turbo_v2_5"
+                  },
+                  "characters": 900,
+                  "cost": 0.045
+                },
+                {
+                  "type": "vapi",
+                  "subType": "normal",
+                  "minutes": 1.6818,
+                  "cost": 0.08409
+                },
+                {
+                  "type": "analysis",
+                  "analysisType": "summary",
+                  "model": {
+                    "provider": "google",
+                    "model": "gemini-2.5-flash-preview-04-17"
+                  },
+                  "promptTokens": 413,
+                  "completionTokens": 57,
+                  "cost": 0.00009615
+                },
+                {
+                  "type": "analysis",
+                  "analysisType": "structuredData",
+                  "model": {
+                    "provider": "google",
+                    "model": "gemini-2.5-flash-preview-04-17"
+                  },
+                  "promptTokens": 934,
+                  "completionTokens": 482,
+                  "cost": 0.0004293
+                },
+                {
+                  "type": "analysis",
+                  "analysisType": "successEvaluation",
+                  "model": {
+                    "provider": "google",
+                    "model": "gemini-2.5-flash-preview-04-17"
+                  },
+                  "promptTokens": 1220,
+                  "completionTokens": 10,
+                  "cost": 0.000189
+                },
+                {
+                  "type": "knowledge-base",
+                  "model": {
+                    "provider": "google",
+                    "model": "gemini-1.5-flash"
+                  },
+                  "promptTokens": 0,
+                  "completionTokens": 0,
+                  "cost": 0
+                }
+              ],
+              "durationMs": 100907,
+              "durationSeconds": 100.907,
+              "durationMinutes": 1.6818,
+              "summary": "Lindsey Gonzales called Automate AI Consulting to book an appointment. During the call, Lindsey provided her contact information, including name, phone number, email, and address with a gate code. An appointment was successfully scheduled for July 4, 2025, at 9 AM.",
+              "transcript": "AI: Hi. Thanks for calling automate AI consulting. This is Tanya. How can I help you?\nUser: Hi. I'd like to book an appointment.\nAI: Of course, I can help you with that. May I have your first and last name, please?\nUser: Yeah. It's Lindsey Gonzales.\nAI: Thank you, Lindsay. Could you please provide your phone number?\nUser: 5 5 9 5 5 5 1 2 3 4.\nAI: Thank you. May I also have your email address?\nUser: Lindsay at example dot com?\nAI: Thank you. Could you provide your street address including city and ZIP code?\nUser: 1 2 3 4 Example Road, Fresno 9 3 7 2 8.\nAI: Thank you. Are there any, um, special access instructions such as gate codes? That we should know about?\nUser: Gate code 1 2 3 4.\nAI: Thank you. 1 moment while I check our calendar. Thank you.\nAI: For your appointment, we have July 4 at 8 AM or July 4 at 9 AM available. Works best for you.\nUser: Um, let's do July fourth at 9 AM please.\nAI: Great. You're booked for July fourth 2025 at 9 AM. Is there anything else I can help you with today?\nUser: No. That's it. Thank you very much.\nAI: You're very welcome. Have a great day. Goodbye.\nUser: Goodbye.\n",
+              "messages": [
+                {
+                  "role": "system",
+                  "message": "(See attached PDFs in Knowledge Base for full SOPs)\n🌟 Identity & Purpose\nYou are Tanya, office coordinator at Automate AI Consulting. Efficiently handle inbound calls: schedule appointments, take messages, answer general inquiries clearly and warmly, reference the knowledge base, and promptly address customer concerns. Current UTC date/time: Jul 3, 2025, 5:52 PM UTC\n\nWhen calling a tool or thinking about internal actions, never verbalize or describe the internal tool call, its parameters, or your internal thoughts to the user. Always keep internal actions silent, and wait for the tool’s response before speaking again. Only speak clear, conversational responses appropriate for the caller.\n\n☎️ Conversation Flow\n\nQuickly identify caller’s need.\n\nAsk one question at a time and pause clearly.\n\nStandard Questions:\n\n“May I have your first and last name, please?” (Last name optional.)\n\n“Could you please provide your phone number?” 🚫 (Internal: Confirm digit-by-digit silently.)\n\n“May I also have your email address?”\n\n“Could you provide your street address, including city and zip code?”\n\n“Any special access instructions, such as gate codes?”\n\n“How did you hear about us?” 🚫 (Internal: If referral, ask politely who referred.)\n\n🔍 Checking Calendar (google_calendar_check_availability_tool2)\n\nSay: “One moment while I check our calendar, thank you.”\n\n🚫 (Internal: Call the tool silently without speaking its name, parameters, or JSON.) Call tool with:\n\ncalendarId (automateaiconsulting@gmail.com)\n\ntimeMin: current timestamp Jul 3, 2025, 5:52 PM UTC\n\ntimeMax: 7 days ahead from today’s date (use the current date/time provided above; NEVER schedule in past dates or years)\n\ntimeZone: \"America/Los_Angeles\" 🚫 (Internal: Do NOT ask caller for timezone.)\n\nSilently wait for JSON response.\n\nFrom returned availableSlots, select earliest 2 slots between 08:00–16:00.\n\nOffer clearly:\n\n“For your appointment, we have July {{slot1Day}} at {{slot1Time}} or July {{slot2Day}} at {{slot2Time}} available. Which works best for you?”\n\n🗓️ Creating Booking (google_calendar_tool2)\n\nAfter caller selects a time:\n\n🚫 (Internal: Call the tool silently without saying the tool name, parameters, or internal notes out loud.)\n\nCall tool with:\n\ncalendarId\n\nsummary: “Automate AI Consulting appointment for {{callerName}}”\n\nstart: confirmed ISO start time\n\nend: start +60 mins\n\nattendees: caller’s email (if provided)\n\nUpon confirmation from tool:\n\n“Great! You’re booked for {{confirmedMonth}} {{confirmedDay}}, {{confirmedYear}} at {{confirmedTime}}.”\n\n🚫 (Internal: After confirming the appointment clearly and the caller says a natural goodbye such as \"thanks,\" \"bye,\" or similar, politely end the call immediately using the endcall function without speaking it aloud.)\n\n📋 Data Extraction (After call ends)\n\nExtract structured data:\n\ncallerName, callerPhone, callerEmail, address\n\nappointmentType, appointmentDateTime\n\nspecialInstructions, referralSource\n\nintent, summary, transcript\n\n🚫 (Internal: Immediately send all extracted data via call_data_to_n8n2 silently, without verbalizing it.)",
+                  "time": 1751565135881,
+                  "secondsFromStart": 0
+                },
+                {
+                  "role": "bot",
+                  "message": "Hi. Thanks for calling automate AI consulting. This is Tanya. How can I help you?",
+                  "time": 1751565137306,
+                  "endTime": 1751565141986,
+                  "secondsFromStart": 1.1999999,
+                  "duration": 4360,
+                  "source": ""
+                },
+                {
+                  "role": "user",
+                  "message": "Hi. I'd like to book an appointment.",
+                  "time": 1751565142706,
+                  "endTime": 1751565144086,
+                  "secondsFromStart": 6.6,
+                  "duration": 1380
+                },
+                {
+                  "role": "bot",
+                  "message": "Of course, I can help you with that. May I have your first and last name, please?",
+                  "time": 1751565145176,
+                  "endTime": 1751565149546.001,
+                  "secondsFromStart": 9.07,
+                  "duration": 4120.0009765625,
+                  "source": ""
+                },
+                {
+                  "role": "user",
+                  "message": "Yeah. It's Lindsey Gonzales.",
+                  "time": 1751565151216.001,
+                  "endTime": 1751565152996,
+                  "secondsFromStart": 15.110001,
+                  "duration": 1779.9990234375
+                },
+                {
+                  "role": "bot",
+                  "message": "Thank you, Lindsay. Could you please provide your phone number?",
+                  "time": 1751565154326,
+                  "endTime": 1751565156826,
+                  "secondsFromStart": 18.22,
+                  "duration": 2500,
+                  "source": ""
+                },
+                {
+                  "role": "user",
+                  "message": "5 5 9 5 5 5 1 2 3 4.",
+                  "time": 1751565158746,
+                  "endTime": 1751565161726,
+                  "secondsFromStart": 22.64,
+                  "duration": 2980
+                },
+                {
+                  "role": "bot",
+                  "message": "Thank you. May I also have your email address?",
+                  "time": 1751565163256,
+                  "endTime": 1751565165436,
+                  "secondsFromStart": 27.15,
+                  "duration": 2180,
+                  "source": ""
+                },
+                {
+                  "role": "user",
+                  "message": "Lindsay at example dot com?",
+                  "time": 1751565166816,
+                  "endTime": 1751565168845.998,
+                  "secondsFromStart": 30.71,
+                  "duration": 2029.998046875
+                },
+                {
+                  "role": "bot",
+                  "message": "Thank you. Could you provide your street address including city and ZIP code?",
+                  "time": 1751565169836,
+                  "endTime": 1751565173776,
+                  "secondsFromStart": 33.73,
+                  "duration": 3699.9970703125,
+                  "source": ""
+                },
+                {
+                  "role": "user",
+                  "message": "1 2 3 4 Example Road, Fresno 9 3 7 2 8.",
+                  "time": 1751565175246,
+                  "endTime": 1751565179496,
+                  "secondsFromStart": 39.14,
+                  "duration": 3939.9951171875
+                },
+                {
+                  "role": "bot",
+                  "message": "Thank you. Are there any, um, special access instructions such as gate codes? That we should know about?",
+                  "time": 1751565181046.002,
+                  "endTime": 1751565187326,
+                  "secondsFromStart": 44.940002,
+                  "duration": 5569.9990234375,
+                  "source": ""
+                },
+                {
+                  "role": "user",
+                  "message": "Gate code 1 2 3 4.",
+                  "time": 1751565189656,
+                  "endTime": 1751565191356,
+                  "secondsFromStart": 53.55,
+                  "duration": 1700
+                },
+                {
+                  "toolCalls": [
+                    {
+                      "id": "call_21S01CrtuRmMQDDORNu1OFQp",
+                      "type": "function",
+                      "function": {
+                        "name": "google_calendar_check_availability_tool2",
+                        "arguments": "{\n  \"calendarId\": \"automateaiconsulting@gmail.com\",\n  \"startDateTime\": \"2025-07-03T00:00:00\",\n  \"endDateTime\": \"2025-07-10T23:59:59\",\n  \"timeZone\": \"America/Los_Angeles\"\n}"
+                      }
+                    }
+                  ],
+                  "role": "tool_calls",
+                  "message": "",
+                  "time": 1751565192019,
+                  "secondsFromStart": 56.042
+                },
+                {
+                  "role": "bot",
+                  "message": "Thank you. 1 moment while I check our calendar. Thank you.",
+                  "time": 1751565192555.997,
+                  "endTime": 1751565195375.997,
+                  "secondsFromStart": 56.449997,
+                  "duration": 2820,
+                  "source": ""
+                },
+                {
+                  "role": "tool_call_result",
+                  "time": 1751565194626,
+                  "secondsFromStart": 58.649,
+                  "name": "google_calendar_check_availability_tool2",
+                  "result": "{\n  \"busy\": [\n    {\n      \"start\": \"2025-07-07T09:00:00-07:00\",\n      \"end\": \"2025-07-07T10:00:00-07:00\"\n    }\n  ],\n  \"free\": [\n    {\n      \"start\": \"2025-07-03T00:00:00.000Z\",\n      \"end\": \"2025-07-07T09:00:00-07:00\"\n    },\n    {\n      \"start\": \"2025-07-07T10:00:00-07:00\",\n      \"end\": \"2025-07-10T23:59:59.000Z\"\n    }\n  ]\n}",
+                  "toolCallId": "call_21S01CrtuRmMQDDORNu1OFQp"
+                },
+                {
+                  "role": "bot",
+                  "message": "For your appointment, we have July 4 at 8 AM or July 4 at 9 AM available. Works best for you.",
+                  "time": 1751565197296.002,
+                  "endTime": 1751565203306,
+                  "secondsFromStart": 61.190002,
+                  "duration": 5849.991943359375,
+                  "source": ""
+                },
+                {
+                  "role": "user",
+                  "message": "Um, let's do July fourth at 9 AM please.",
+                  "time": 1751565204295.995,
+                  "endTime": 1751565207666,
+                  "secondsFromStart": 68.189995,
+                  "duration": 3370.0048828125
+                },
+                {
+                  "toolCalls": [
+                    {
+                      "id": "call_BrPQn0Ymha5gSEwIByugdGr2",
+                      "type": "function",
+                      "function": {
+                        "name": "google_calendar_tool2",
+                        "arguments": "{\n  \"summary\": \"Automate AI Consulting appointment for Lindsey Gonzales\",\n  \"attendees\": [\"lindsay@example.com\"],\n  \"calendarId\": \"automateaiconsulting@gmail.com\",\n  \"timeZone\": \"America/Los_Angeles\",\n  \"startDateTime\": \"2025-07-04T09:00:00\",\n  \"endDateTime\": \"2025-07-04T10:00:00\"\n}"
+                      }
+                    }
+                  ],
+                  "role": "tool_calls",
+                  "message": "",
+                  "time": 1751565207500,
+                  "secondsFromStart": 71.523
+                },
+                {
+                  "role": "tool_call_result",
+                  "time": 1751565208380,
+                  "secondsFromStart": 72.403,
+                  "name": "google_calendar_tool2",
+                  "result": "{\n  \"kind\": \"calendar#event\",\n  \"etag\": \"\\\"3503130416328478\\\"\",\n  \"id\": \"es6rgfdkhiejngbrffsli1c9mk\",\n  \"status\": \"confirmed\",\n  \"htmlLink\": \"https://www.google.com/calendar/event?eid=ZXM2cmdmZGtoaWVqbmdicmZmc2xpMWM5bWsgYXV0b21hdGVhaWNvbnN1bHRpbmdAbQ\",\n  \"created\": \"2025-07-03T17:53:27.000Z\",\n  \"updated\": \"2025-07-03T17:53:28.164Z\",\n  \"summary\": \"Automate AI Consulting appointment for Lindsey Gonzales\",\n  \"creator\": {\n    \"email\": \"automateaiconsulting@gmail.com\",\n    \"self\": true\n  },\n  \"organizer\": {\n    \"email\": \"automateaiconsulting@gmail.com\",\n    \"self\": true\n  },\n  \"start\": {\n    \"dateTime\": \"2025-07-04T09:00:00-07:00\",\n    \"timeZone\": \"America/Los_Angeles\"\n  },\n  \"end\": {\n    \"dateTime\": \"2025-07-04T10:00:00-07:00\",\n    \"timeZone\": \"America/Los_Angeles\"\n  },\n  \"iCalUID\": \"es6rgfdkhiejngbrffsli1c9mk@google.com\",\n  \"sequence\": 0,\n  \"attendees\": [\n    {\n      \"email\": \"lindsay@example.com\",\n      \"responseStatus\": \"needsAction\"\n    }\n  ],\n  \"reminders\": {\"useDefault\": true},\n  \"eventType\": \"default\"\n}",
+                  "toolCallId": "call_BrPQn0Ymha5gSEwIByugdGr2"
+                },
+                {
+                  "role": "bot",
+                  "message": "Great. You're booked for July fourth 2025 at 9 AM. Is there anything else I can help you with today?",
+                  "time": 1751565210646,
+                  "endTime": 1751565217626,
+                  "secondsFromStart": 74.54,
+                  "duration": 6660,
+                  "source": ""
+                },
+                {
+                  "role": "user",
+                  "message": "No. That's it. Thank you very much.",
+                  "time": 1751565219156,
+                  "endTime": 1751565221015.996,
+                  "secondsFromStart": 83.05,
+                  "duration": 1859.99609375
+                },
+                {
+                  "role": "bot",
+                  "message": "You're very welcome. Have a great day. Goodbye.",
+                  "time": 1751565221876,
+                  "endTime": 1751565224295.995,
+                  "secondsFromStart": 85.77,
+                  "duration": 2419.9951171875,
+                  "source": ""
+                },
+                {
+                  "role": "user",
+                  "message": "Goodbye.",
+                  "time": 1751565225196,
+                  "endTime": 1751565225696,
+                  "secondsFromStart": 89.09,
+                  "duration": 500
+                }
+              ],
+              "recordingUrl": "https://storage.vapi.ai/9e04c101-812d-4d7e-a5de-899860a27388-1751565315308-b4edccdc-546e-4c33-9807-994c6c3f336f-mono.wav",
+              "stereoRecordingUrl": "https://storage.vapi.ai/9e04c101-812d-4d7e-a5de-899860a27388-1751565315308-88c48d16-9fda-40cc-9f33-6174bc6b5e40-stereo.wav",
+              "call": {
+                "id": "9e04c101-812d-4d7e-a5de-899860a27388",
+                "orgId": "38e04135-c8dc-47e0-a470-c441bbe3511f",
+                "createdAt": "2025-07-03T17:52:15.838Z",
+                "updatedAt": "2025-07-03T17:52:15.838Z",
+                "type": "inboundPhoneCall",
+                "monitor": {
+                  "listenUrl": "wss://phone-call-websocket.aws-us-west-2-backend-production1.vapi.ai/9e04c101-812d-4d7e-a5de-899860a27388/listen",
+                  "controlUrl": "https://phone-call-websocket.aws-us-west-2-backend-production1.vapi.ai/9e04c101-812d-4d7e-a5de-899860a27388/control"
+                },
+                "transport": {
+                  "provider": "vapi.sip",
+                  "callSid": "5e30d0e2-f4d5-4d80-abb8-fb20312ee31b",
+                  "sbcCallSid": "26963857-3960553935-1702870181@msc1.382COM.COM"
+                },
+                "phoneCallProvider": "vapi",
+                "phoneCallProviderId": "5e30d0e2-f4d5-4d80-abb8-fb20312ee31b",
+                "phoneCallTransport": "sip",
+                "phoneCallProviderDetails": {
+                  "sbcCallId": "26963857-3960553935-1702870181@msc1.382COM.COM"
+                },
+                "status": "ringing",
+                "assistantId": "486d4e82-e75d-4b4b-b6f0-9935db17bad1",
+                "assistantOverrides": {
+                  "variableValues": {
+                    "account-sid": "c033b672-5b99-42ae-9ce2-b231e9a522fb",
+                    "cid": "26963857-3960553935-1702870181@msc1.382COM.COM",
+                    "forwarded-for": "64.125.111.10",
+                    "originating-carrier": "382com",
+                    "voip-carrier-sid": "a5569621-84ac-49cc-a8b8-11c7fb96b905",
+                    "application-sid": "79d078c8-76b2-452a-99e0-ddd5abbf6269"
+                  }
+                },
+                "phoneNumberId": "173e5723-cca7-4e48-b2fa-94ea680713ae",
+                "customer": {
+                  "number": "+14088029549",
+                  "sipUri": "sip:+14088029549@44.229.228.186:5060"
+                }
+              },
+              "phoneNumber": {
+                "id": "173e5723-cca7-4e48-b2fa-94ea680713ae",
+                "orgId": "38e04135-c8dc-47e0-a470-c441bbe3511f",
+                "assistantId": "486d4e82-e75d-4b4b-b6f0-9935db17bad1",
+                "number": "+15594229179",
+                "createdAt": "2025-07-03T16:33:17.693Z",
+                "updatedAt": "2025-07-03T17:08:47.947Z",
+                "name": "Tanya",
+                "provider": "vapi",
+                "status": "active",
+                "providerResourceId": "55b13e32-ed56-4f63-99f8-34ac635a797a",
+                "smsEnabled": true
+              },
+              "customer": {
+                "number": "+14088029549",
+                "sipUri": "sip:+14088029549@44.229.228.186:5060"
+              },
+              "assistant": {
+                "id": "486d4e82-e75d-4b4b-b6f0-9935db17bad1",
+                "orgId": "38e04135-c8dc-47e0-a470-c441bbe3511f",
+                "name": "Tanya",
+                "voice": {
+                  "voiceId": "Savannah",
+                  "provider": "vapi"
+                },
+                "createdAt": "2025-07-03T16:34:17.298Z",
+                "updatedAt": "2025-07-03T17:50:58.732Z",
+                "model": {
+                  "model": "gpt-4.1",
+                  "toolIds": [
+                    "8ae2cd6d-d648-4a20-b1bc-61e6ce10982e",
+                    "e9314a88-8cf3-4c9b-b559-faa659be3ed6",
+                    "7c500b90-780e-4328-bb55-0921e226282d"
+                  ],
+                  "messages": [
+                    {
+                      "role": "system",
+                      "content": "(See attached PDFs in Knowledge Base for full SOPs)\n🌟 Identity & Purpose\nYou are Tanya, office coordinator at Automate AI Consulting. Efficiently handle inbound calls: schedule appointments, take messages, answer general inquiries clearly and warmly, reference the knowledge base, and promptly address customer concerns. Current UTC date/time: Jul 3, 2025, 5:52 PM UTC\n\nWhen calling a tool or thinking about internal actions, never verbalize or describe the internal tool call, its parameters, or your internal thoughts to the user. Always keep internal actions silent, and wait for the tool’s response before speaking again. Only speak clear, conversational responses appropriate for the caller.\n\n☎️ Conversation Flow\n\nQuickly identify caller’s need.\n\nAsk one question at a time and pause clearly.\n\nStandard Questions:\n\n“May I have your first and last name, please?” (Last name optional.)\n\n“Could you please provide your phone number?” 🚫 (Internal: Confirm digit-by-digit silently.)\n\n“May I also have your email address?”\n\n“Could you provide your street address, including city and zip code?”\n\n“Any special access instructions, such as gate codes?”\n\n“How did you hear about us?” 🚫 (Internal: If referral, ask politely who referred.)\n\n🔍 Checking Calendar (google_calendar_check_availability_tool2)\n\nSay: “One moment while I check our calendar, thank you.”\n\n🚫 (Internal: Call the tool silently without speaking its name, parameters, or JSON.) Call tool with:\n\ncalendarId (automateaiconsulting@gmail.com)\n\ntimeMin: current timestamp Jul 3, 2025, 5:52 PM UTC\n\ntimeMax: 7 days ahead from today’s date (use the current date/time provided above; NEVER schedule in past dates or years)\n\ntimeZone: \"America/Los_Angeles\" 🚫 (Internal: Do NOT ask caller for timezone.)\n\nSilently wait for JSON response.\n\nFrom returned availableSlots, select earliest 2 slots between 08:00–16:00.\n\nOffer clearly:\n\n“For your appointment, we have July {{slot1Day}} at {{slot1Time}} or July {{slot2Day}} at {{slot2Time}} available. Which works best for you?”\n\n🗓️ Creating Booking (google_calendar_tool2)\n\nAfter caller selects a time:\n\n🚫 (Internal: Call the tool silently without saying the tool name, parameters, or internal notes out loud.)\n\nCall tool with:\n\ncalendarId\n\nsummary: “Automate AI Consulting appointment for {{callerName}}”\n\nstart: confirmed ISO start time\n\nend: start +60 mins\n\nattendees: caller’s email (if provided)\n\nUpon confirmation from tool:\n\n“Great! You’re booked for {{confirmedMonth}} {{confirmedDay}}, {{confirmedYear}} at {{confirmedTime}}.”\n\n🚫 (Internal: After confirming the appointment clearly and the caller says a natural goodbye such as \"thanks,\" \"bye,\" or similar, politely end the call immediately using the endcall function without speaking it aloud.)\n\n📋 Data Extraction (After call ends)\n\nExtract structured data:\n\ncallerName, callerPhone, callerEmail, address\n\nappointmentType, appointmentDateTime\n\nspecialInstructions, referralSource\n\nintent, summary, transcript\n\n🚫 (Internal: Immediately send all extracted data via call_data_to_n8n2 silently, without verbalizing it.)"
+                    }
+                  ],
+                  "provider": "openai",
+                  "knowledgeBase": {
+                    "fileIds": [
+                      "532866e3-126c-49b6-b762-90aa239e7b04",
+                      "bd39b0a0-2391-4dd6-a4c9-812099c4594d"
+                    ],
+                    "provider": "google"
+                  },
+                  "tools": [
+                    {
+                      "id": "8ae2cd6d-d648-4a20-b1bc-61e6ce10982e",
+                      "createdAt": "2025-07-03T16:53:06.719Z",
+                      "updatedAt": "2025-07-03T17:51:16.988Z",
+                      "type": "function",
+                      "function": {
+                        "name": "call_data_to_n8n2",
+                        "parameters": {
+                          "type": "object",
+                          "required": [],
+                          "properties": {
+                            "address": {
+                              "type": "string",
+                              "description": "Complete property address provided by the caller, including street, city, and zip code (if explicitly stated; otherwise return null)"
+                            },
+                            "callerName": {
+                              "type": "string",
+                              "description": "Full name of the caller (if mentioned clearly; otherwise return null)"
+                            },
+                            "transcript": {
+                              "type": "string",
+                              "description": "The complete transcript verbatim (if available)"
+                            },
+                            "callerEmail": {
+                              "type": "string",
+                              "description": "Email address provided by the caller (if explicitly stated; otherwise return null)"
+                            },
+                            "callerPhone": {
+                              "type": "string",
+                              "description": "Phone number of the caller (if explicitly stated; otherwise return null)"
+                            },
+                            "referralSource": {
+                              "type": "string",
+                              "description": "How the caller heard about Automate AI Consulting (if explicitly mentioned; otherwise return null)"
+                            },
+                            "appointmentType": {
+                              "type": "string",
+                              "description": "Type of appointment discussed (e.g., \"Inspection,\" \"Reschedule appointment,\" \"Service call\"), or null if not scheduling"
+                            },
+                            "appointmentDateTime": {
+                              "type": "string",
+                              "description": "Confirmed appointment date and time, if scheduled clearly (format: \"YYYY-MM-DD HH:MM\"; otherwise return null)"
+                            },
+                            "specialInstructions": {
+                              "type": "string",
+                              "description": "Special property access instructions or notes provided by the caller (if explicitly stated; otherwise return null)"
+                            }
+                          }
+                        },
+                        "description": "Sending structured data to n8n via webhook"
+                      },
+                      "orgId": "38e04135-c8dc-47e0-a470-c441bbe3511f",
+                      "server": {
+                        "url": "https://tyson.app.n8n.cloud/webhook/demo-voice-agent",
+                        "headers": {
+                          "Content-Type": "application/json"
+                        }
+                      },
+                      "async": true
+                    },
+                    {
+                      "id": "e9314a88-8cf3-4c9b-b559-faa659be3ed6",
+                      "createdAt": "2025-07-03T16:47:13.381Z",
+                      "updatedAt": "2025-07-03T17:39:27.866Z",
+                      "type": "google.calendar.availability.check",
+                      "function": {
+                        "name": "google_calendar_check_availability_tool2",
+                        "parameters": {
+                          "type": "object",
+                          "required": [],
+                          "properties": {}
+                        },
+                        "description": "Check Google Calendar for available appointment slots on calendar id: 'automateaiconsulting@gmail.com'"
+                      },
+                      "messages": [
+                        {
+                          "type": "request-start",
+                          "content": "",
+                          "blocking": false
+                        }
+                      ],
+                      "metadata": {
+                        "timeZone": "America/Los_Angeles",
+                        "calendarId": "automateaiconsulting@gmail.com"
+                      },
+                      "orgId": "38e04135-c8dc-47e0-a470-c441bbe3511f"
+                    },
+                    {
+                      "id": "7c500b90-780e-4328-bb55-0921e226282d",
+                      "createdAt": "2025-07-03T16:45:04.569Z",
+                      "updatedAt": "2025-07-03T17:38:12.368Z",
+                      "type": "google.calendar.event.create",
+                      "function": {
+                        "name": "google_calendar_tool2",
+                        "parameters": {
+                          "type": "object",
+                          "required": [],
+                          "properties": {}
+                        },
+                        "description": "Create an event on Google Calendar id: 'automateaiconsulting@gmail.com'"
+                      },
+                      "messages": [
+                        {
+                          "type": "request-start",
+                          "content": "",
+                          "blocking": false
+                        }
+                      ],
+                      "metadata": {
+                        "timeZone": "America/Los_Angeles",
+                        "calendarId": "automateaiconsulting@gmail.com"
+                      },
+                      "orgId": "38e04135-c8dc-47e0-a470-c441bbe3511f"
+                    }
+                  ]
+                },
+                "firstMessage": "Hi thanks for calling Automate AI Consulting, this is Tanya. How can I help you?",
+                "voicemailMessage": "Please call back when you're available.",
+                "endCallMessage": "Goodbye.",
+                "transcriber": {
+                  "model": "nova-2",
+                  "language": "en",
+                  "provider": "deepgram"
+                },
+                "serverMessages": [
+                  "end-of-call-report"
+                ],
+                "analysisPlan": {
+                  "structuredDataPlan": {
+                    "schema": {
+                      "type": "object",
+                      "properties": {
+                        "callerName": {
+                          "type": "string"
+                        },
+                        "transcript": {
+                          "type": "string"
+                        },
+                        "callerEmail": {
+                          "type": "string"
+                        },
+                        "callerPhone": {
+                          "type": "string"
+                        },
+                        "callerAddress": {
+                          "type": "string"
+                        },
+                        "referralSource": {
+                          "type": "string"
+                        },
+                        "appointmentType": {
+                          "type": "string"
+                        },
+                        "appointmentDateTime": {
+                          "type": "string"
+                        },
+                        "specialInstructions": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "enabled": true,
+                    "messages": [
+                      {
+                        "role": "system",
+                        "content": "You will be given a transcript of a call and the system prompt of the AI participant.\n\nExtract the following structured fields from the transcript and return them in JSON format:\n\ncallerName: Full name of the caller (if mentioned clearly; otherwise return null)\n\ncallerPhone: Phone number of the caller (if explicitly stated; otherwise return null)\n\ncallerEmail: Email address provided by the caller (if explicitly stated; otherwise return null)\n\naddress: Complete property address provided by the caller, including street, city, and zip code (if explicitly stated; otherwise return null)\n\nappointmentType: Type of appointment discussed (e.g., \"Inspection,\" \"Reschedule appointment,\" \"Service call\"), or null if not scheduling\n\nappointmentDateTime: Confirmed appointment date and time, if scheduled clearly (format: \"YYYY-MM-DD HH:MM\"; otherwise return null)\n\nspecialInstructions: Special property access instructions or notes provided by the caller (if explicitly stated; otherwise return null)\n\nreferralSource: How the caller heard about Automate AI Consulting (if explicitly mentioned; otherwise return null)\n\ntranscript: The complete transcript verbatim (if available)\n\nOnce these fields are extracted, call the tool call_data_to_n8n2 and pass those fields as parameters.\n\nExample Output:\n\n{\n  \"callerName\": \"Michael Anderson\",\n  \"callerPhone\": \"559-555-1212\",\n  \"callerEmail\": \"michael.anderson@example.com\",\n  \"callerAddress\": \"123 Example Street, Fresno, CA 93720\",\n  \"appointmentType\": \"Free attic inspection\",\n  \"appointmentDateTime\": \"2025-04-16 13:00\",\n  \"specialInstructions\": \"Gate code 4455\",\n  \"referralSource\": \"Google search\",\n  \"transcript\": \"Caller: Hi, I'd like to schedule an appointment... [full transcript here]\"\n}\n\nJson Schema:\n{{schema}}\n\nOnly respond with the JSON."
+                      },
+                      {
+                        "role": "user",
+                        "content": "Here is the transcript:\n\n{{transcript}}\n\n. Here is the ended reason of the call:\n\n{{endedReason}}\n\n"
+                      }
+                    ]
+                  },
+                  "minMessagesThreshold": 2
+                },
+                "server": {
+                  "url": "https://tyson.app.n8n.cloud/webhook/demo-voice-agent",
+                  "timeoutSeconds": 20
+                },
+                "variableValues": {
+                  "account-sid": "c033b672-5b99-42ae-9ce2-b231e9a522fb",
+                  "cid": "26963857-3960553935-1702870181@msc1.382COM.COM",
+                  "forwarded-for": "64.125.111.10",
+                  "originating-carrier": "382com",
+                  "voip-carrier-sid": "a5569621-84ac-49cc-a8b8-11c7fb96b905",
+                  "application-sid": "79d078c8-76b2-452a-99e0-ddd5abbf6269"
+                }
+              }
+            }
+          },
+          "webhookUrl": "https://tyson.app.n8n.cloud/webhook/demo-voice-agent",
+          "executionMode": "production"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Create a record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a record": {
+      "main": [
+        [
+          {
+            "node": "Execute Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Workflow": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "29ca6369-9a1e-43ca-9427-19a28befbf07",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "d9e08b03f66bed3e457d91934829145fe883e6ff4c831e245eea7603c9679cd0"
+  },
+  "id": "1Q5lxnKzKqI6fn0Z",
+  "tags": []
+}
